@@ -266,6 +266,7 @@
           <button class="set-gear" id="pf-gear" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         </div>
         <p class="muted" id="st-note" style="margin:14px 0 0"></p>
+        <button class="btn btn-ghost hidden" id="btn-addlic" type="button" style="margin-top:12px">Add licence &amp; insurance ›</button>
         <ul class="kv">
           <li><span>Listing</span><span id="st-exp"></span></li>
         </ul>
@@ -283,6 +284,7 @@
         <h3>Your trade</h3>
         <p class="hint">Pick all that apply.</p>
         <div class="tgrid" id="trade-grid"></div>
+        <p class="hint" id="lic-later" style="margin:10px 0 0">You can add your licence and insurance later in <b>Settings</b>. <b>A licence may be required to activate your Pro profile later.</b></p>
       </div>
 
       <div class="fs" id="fs-you">
@@ -295,6 +297,13 @@
           <input class="in" id="f-phone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="e.g. 416 555 0123">
           <label class="chk" style="margin-top:10px"><input type="checkbox" id="f-sms"><span>Text me when a homeowner sends a job inquiry <span class="muted">(coming soon)</span></span></label>
           <p class="hint" style="margin:6px 0 0">Private — never shown on your profile. Used only for job-inquiry alerts you turn on.</p></div>
+        <div id="fs-links">
+          <div class="field"><label class="f" for="f-web">Business website <span class="muted">(optional)</span></label>
+            <input class="in" id="f-web" type="url" inputmode="url" maxlength="200" autocomplete="url" placeholder="e.g. smithplumbing.ca"></div>
+          <div class="field"><label class="f" for="f-bemail">Business email <span class="muted">(optional — if different from your sign-in email)</span></label>
+            <input class="in" id="f-bemail" type="email" inputmode="email" maxlength="254" autocomplete="email" placeholder="e.g. info@smithplumbing.ca">
+            <p class="hint" style="margin:6px 0 0">Private — only you and the Yoodle team can see your website and business email.</p></div>
+        </div>
         <div class="field" style="margin-bottom:0"><label class="f" for="f-bio">About your work <span class="muted">(optional)</span></label>
           <textarea class="in" id="f-bio" maxlength="500" placeholder="Years in the trade, what you do, areas you cover…"></textarea></div>
       </div>
@@ -575,6 +584,10 @@ function esc(t){ return String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','
 function normPhone(v){ let d = String(v || '').replace(/\D/g, ''); if (!d) return '';
   if (d.length === 11 && d[0] === '1') d = d.slice(1);
   return /^[2-9]\d{9}$/.test(d) ? '+1' + d : false; }
+function normWeb(v){ let w = String(v || '').trim(); if (!w) return ''; if (!/^https?:\/\//i.test(w)) w = 'https://' + w;
+  return (w.length <= 200 && /^https?:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+([\/?#].*)?$/i.test(w)) ? w : false; }
+function normEmail(v){ const e = String(v || '').trim().toLowerCase(); if (!e) return '';
+  return (e.length <= 254 && /^[^@\s]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(e)) ? e : false; }
 function fmtPhone(p){ const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(p || ''); return m ? `${m[1]} ${m[2]} ${m[3]}` : ''; }
 const exact6 = n => Math.round(n * 1e6) / 1e6;   // business address is public and exact (Pro Terms, 10 Oct 2026)
 const tradeLabel = k => { const t = TRADES.find(x => x.key === k); return t ? t.emoji + ' ' + t.label : k; };
@@ -634,7 +647,9 @@ function openSetup(mode){
   }
   // after set-up the trade is fixed on the Profile — it changes only via Settings → Trade & licence
   $('fs-trade').classList.toggle('hidden', isEdit && !tradeMode);
-  $('fs-lic').classList.toggle('hidden', isEdit && !tradeMode);
+  $('fs-lic').classList.toggle('hidden', !tradeMode);   // licence + insurance only via Settings → Trade & licence (Roman, 10 Oct)
+  $('lic-later').classList.toggle('hidden', isEdit);
+  $('fs-links').classList.toggle('hidden', !isEdit || tradeMode);   // website + business email: Profile only, not at sign-up
   $('fs-you').classList.toggle('hidden', tradeMode);
   $('fs-where').classList.toggle('hidden', tradeMode);
   sel = new Set(myPro ? myPro.trades : []);
@@ -652,6 +667,8 @@ function openSetup(mode){
   $('f-insexp').value = myCred?.insurance_expires || '';
   $('f-phone').value = fmtPhone(myCred?.phone);
   $('f-sms').checked = !!myCred?.sms_opt_in;
+  $('f-web').value = myCred?.website || '';
+  $('f-bemail').value = myCred?.business_email || '';
   $('terms-box').classList.toggle('hidden', !!myProfile.terms_accepted_at);
   $('f-terms').checked = false;
   $('pro-terms-box').classList.toggle('hidden', !!(myPro && myPro.pro_terms_version === PRO_TERMS_VERSION));
@@ -758,6 +775,11 @@ $('btn-save').onclick = async () => {
   const phone = normPhone($('f-phone').value);
   if (phone === false) return fail('Please enter a 10-digit Canadian phone number, or leave it empty.', $('f-phone'));
   if ($('f-sms').checked && !phone) return fail('Add your mobile number to get text alerts, or untick the box.', $('f-phone'));
+  const linksOn = !$('fs-links').classList.contains('hidden');
+  const web = linksOn ? normWeb($('f-web').value) : (myCred?.website || '');
+  const bemail = linksOn ? normEmail($('f-bemail').value) : (myCred?.business_email || '');
+  if (web === false) return fail('Please enter a valid website, e.g. smithplumbing.ca — or leave it empty.', $('f-web'));
+  if (bemail === false) return fail('Please enter a valid business email, or leave it empty.', $('f-bemail'));
   const needTerms = !myProfile.terms_accepted_at;
   if (needTerms && !$('f-terms').checked) return fail('Please agree to the Terms of Use.', $('terms-box'));
 
@@ -777,6 +799,12 @@ $('btn-save').onclick = async () => {
   if (phone !== (myCred?.phone || '') || $('f-sms').checked !== !!myCred?.sms_opt_in) {
     const { error: e3 } = await sb.rpc('set_my_pro_contact', { p_phone: phone, p_sms_opt_in: $('f-sms').checked && !!phone });
     if (e3) { b.disabled = false; return fail(/10-digit/i.test(e3.message) ? 'Please enter a 10-digit Canadian phone number, or leave it empty.' : 'Couldn’t save your phone number. Please try again.', $('f-phone')); }
+  }
+
+  // website + business email are private (pro_credentials) — pros_v5_links; Profile only
+  if (linksOn && (web !== (myCred?.website || '') || bemail !== (myCred?.business_email || ''))) {
+    const { error: e4 } = await sb.rpc('set_my_pro_links', { p_website: web, p_email: bemail });
+    if (e4) { b.disabled = false; return fail(/website/i.test(e4.message) ? 'Please enter a valid website, e.g. smithplumbing.ca — or leave it empty.' : /email/i.test(e4.message) ? 'Please enter a valid business email, or leave it empty.' : 'Couldn’t save your website and email. Please try again.', /email/i.test(e4.message) ? $('f-bemail') : $('f-web')); }
   }
 
   const upd = { name };   // helper listing fields are never touched by the pro app
@@ -1061,7 +1089,8 @@ function renderProfileHead(){
     : paused ? 'Your listing is paused — homeowners can’t see your pin.'
     : verified ? 'Homeowners see your Pro pin with the Verified badge.'
     : hasLic ? 'You’re on the map. We’ll check your licence and add the Verified badge — usually within a few days.'
-    : 'You’re on the map. Add your licence below to get the Verified badge — a licence may be required to activate your Pro profile later.';
+    : 'You’re on the map. Add your licence and insurance in Settings to get the Verified badge — a licence may be required to activate your Pro profile later.';
+  $('btn-addlic').classList.toggle('hidden', p.status === 'suspended' || hasLic);
   $('st-exp').textContent = paused ? 'Paused' : expired ? 'Expired — tap Save changes to renew'
     : 'Live until ' + new Date(p.expires_at).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' });
   $('btn-pause').textContent = paused ? 'Resume my listing' : 'Pause my listing';
@@ -1097,6 +1126,7 @@ function closeSettings(){ $('settings').classList.add('hidden'); }
 $('pf-gear').onclick = openSettings;
 $('st-back').onclick = closeSettings;
 $('btn-chtrade').onclick = () => { closeSettings(); openSetup('trade'); };
+$('btn-addlic').onclick = () => { openSetup('trade'); window.scrollTo(0, 0); };
 $('btn-cancel-edit').onclick = () => goTab('profile');
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('settings').classList.contains('hidden') && !$('del-sheet').classList.contains('open')) closeSettings(); });
 
