@@ -379,6 +379,8 @@
       </div>
       <button class="btn btn-ghost" id="btn-signout" type="button">Sign out</button>
       <div class="gap"></div>
+      <button class="btn btn-danger" id="btn-delpro" type="button">Delete my Pro profile</button>
+      <p class="hint" style="margin:6px 2px 12px;color:var(--muted);font-size:13px">Removes only your Pro listing and licence details. Your Yoodle account, helper listing and messages stay.</p>
       <button class="btn btn-danger" id="btn-delete" type="button">Delete my account</button>
     </div>
   </div>
@@ -408,8 +410,8 @@
 <div class="scrim" id="del-sheet" role="dialog" aria-modal="true">
   <div class="sheet">
     <button class="x" id="del-close" type="button" aria-label="Close">×</button>
-    <h2>Delete your account?</h2>
-    <p class="sub">This removes your Yoodle account everywhere — your Pro profile, helper listing, jobs, messages and ratings. It can't be undone.</p>
+    <h2 id="del-title">Delete your account?</h2>
+    <p class="sub" id="del-sub">This removes your Yoodle account everywhere — your Pro profile, helper listing, jobs, messages and ratings. It can't be undone.</p>
     <label class="f" for="del-in">Type DELETE to confirm</label>
     <input class="in" id="del-in" autocomplete="off" placeholder="DELETE">
     <div class="gap"></div>
@@ -517,7 +519,7 @@ function showLanding(){
 }
 
 /* ---------- helpers ---------- */
-const PRO_DAYS = 90;   // same listing length as yoodle.ca helpers
+const PRO_DAYS = 365;  // Pro listing lasts 1 year (Roman, 10 Oct) — set by the RPC; used for display only
 let TRADES = [];       // from pro_trades
 let myProfile = null, myPro = null, myCred = null;
 let sel = new Set();   // selected trade keys
@@ -585,7 +587,7 @@ function openSetup(isEdit){
   const nm = myProfile.name || '';
   $('f-name').value = nm.includes('@') ? '' : nm;   // email sign-ups get the email as a name
   $('f-biz').value = myPro?.business_name || '';
-  $('f-bio').value = myProfile.helper_bio || '';
+  $('f-bio').value = (myPro ? myPro.bio : myProfile.helper_bio) || '';
   $('f-radius').value = String(myPro?.service_radius_km || 25);
   if (![...$('f-radius').options].some(o => o.value === $('f-radius').value)) $('f-radius').value = '25';
   $('f-lbody').value = myCred?.licence_body || '';
@@ -596,9 +598,11 @@ function openSetup(isEdit){
   $('terms-box').classList.toggle('hidden', !!myProfile.terms_accepted_at);
   $('f-terms').checked = false;
   setMsg('msg-save','');
-  if (myProfile.helper_lat != null && myProfile.helper_address && !isVagueText(myProfile.helper_address))
-    setLoc({ address: myProfile.helper_address, lat: myProfile.helper_lat, lng: myProfile.helper_lng });
-  else { setLoc(null); $('f-loc').value = myProfile.helper_address || ''; }
+  // Pro listing has its own location (pros_v2); a helper joining gets their helper area as a starting point
+  const src = myPro && myPro.lat != null ? { address: myPro.address, lat: myPro.lat, lng: myPro.lng }
+            : { address: myProfile.helper_address, lat: myProfile.helper_lat, lng: myProfile.helper_lng };
+  if (src.lat != null && src.address && !isVagueText(src.address)) setLoc(src);
+  else { setLoc(null); $('f-loc').value = src.address || ''; }
   if (isEdit) { renderProfileHead(); show('pf-head','v-setup','pf-tools'); loadTools(); }
   else show('v-setup');
 }
@@ -690,22 +694,18 @@ $('btn-save').onclick = async () => {
   if (needTerms && !$('f-terms').checked) return fail('Please agree to the Terms of Use.', $('terms-box'));
 
   const b = $('btn-save'); b.disabled = true; setMsg('msg-save','Saving…');
-  // 1) pro row first (validates trades) — then the helper fields that put the pin on the map
+  // Pro listing is separate from the helper listing (pros_v2): the RPC saves location/bio/expiry on pro_profiles
   const { error: e1 } = await sb.rpc('upsert_my_pro_profile', {
     p_trades: [...sel], p_business_name: $('f-biz').value.trim(), p_radius: +$('f-radius').value,
+    p_address: loc.address, p_lat: loc.lat, p_lng: loc.lng, p_bio: $('f-bio').value.trim() || null,
     p_licence_type: $('f-ltype').value.trim() || null, p_licence_body: $('f-lbody').value || null,
     p_licence_number: $('f-lnum').value.trim() || null, p_insurer: $('f-ins').value.trim() || null,
     p_insurance_expires: $('f-insexp').value || null
   });
-  if (e1) { b.disabled = false; return fail(/suspended/i.test(e1.message) ? 'Your account is suspended.' : 'Couldn’t save your Pro details. Please try again.'); }
+  if (e1) { b.disabled = false; return fail(/suspended/i.test(e1.message) ? 'Your account is suspended.' : /words/i.test(e1.message) ? 'Your profile contains words that aren’t allowed on Yoodle.' : 'Couldn’t save your Pro details. Please try again.'); }
 
-  const upd = {
-    name, helper_bio: $('f-bio').value.trim() || null,
-    helper_address: loc.address, helper_lat: loc.lat, helper_lng: loc.lng,
-    last_lat: loc.lat, last_lng: loc.lng,          // map pins use last_lat/lng (same as yoodle.ca helper save)
-    show_on_map: true, visible_on_map: true,
-    helper_expires_at: new Date(Date.now() + PRO_DAYS * 864e5).toISOString()
-  };
+  const upd = { name };   // helper listing fields are never touched by the pro app
+
   if (needTerms) upd.terms_accepted_at = new Date().toISOString();
   const { error: e2 } = await sb.from('profiles').update(upd).eq('id', me.id);
   b.disabled = false;
@@ -746,7 +746,7 @@ function mapMsg(t){ $('map-msg').textContent = t || ''; $('map-msg').classList.t
 function openMap(){
   _hdrH();
   if (!window.maplibregl) { mapMsg('The map couldn’t load. Check your connection and try again.'); return; }
-  const lat = myProfile.helper_lat ?? myProfile.last_lat, lng = myProfile.helper_lng ?? myProfile.last_lng;
+  const lat = myPro && myPro.lat, lng = myPro && myPro.lng;
   if (lat == null || lng == null) { mapMsg('Add your work area in Profile to see pros near you.'); return; }
   mapMsg('');
   if (!pmap) {
@@ -768,15 +768,15 @@ function openMap(){
 }
 
 function fitToRadius(){
-  const lat = myProfile.helper_lat, lng = myProfile.helper_lng, km = (myPro && myPro.service_radius_km) || 25;
+  const lat = myPro && myPro.lat, lng = myPro && myPro.lng, km = (myPro && myPro.service_radius_km) || 25;
   if (!pmap || lat == null) return;
   const dLat = km / 110.574, dLng = km / (111.32 * Math.cos(lat * Math.PI / 180));
   pmap.fitBounds([[lng - dLng, lat - dLat], [lng + dLng, lat + dLat]], { padding: 30, duration: 0 });
 }
 
 function drawRing(){
-  if (!pmap || !pmapReady || myProfile.helper_lat == null) return;
-  const data = circle(myProfile.helper_lat, myProfile.helper_lng, (myPro && myPro.service_radius_km) || 25);
+  if (!pmap || !pmapReady || !myPro || myPro.lat == null) return;
+  const data = circle(myPro.lat, myPro.lng, myPro.service_radius_km || 25);
   if (pmap.getSource('ring')) { pmap.getSource('ring').setData(data); return; }
   pmap.addSource('ring', { type: 'geojson', data });
   pmap.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': '#EA6A12', 'fill-opacity': 0.06 } });
@@ -785,21 +785,21 @@ function drawRing(){
 
 async function loadMapPros(){
   _prosAt = Date.now();
-  const { data: pros, error } = await sb.from('pro_profiles').select('profile_id,trades,business_name,status,licence_verified_at');
+  const { data: pros, error } = await sb.from('pro_profiles').select('profile_id,trades,business_name,status,licence_verified_at,address,lat,lng,visible,expires_at');
   if (error) { mapMsg('Couldn’t load pros. Please try again.'); return; }
   const ids = (pros || []).map(p => p.profile_id);
   let profs = [];
   if (ids.length) {
-    const { data } = await sb.from('profiles').select('id,name,last_lat,last_lng,visible_on_map,show_on_map,helper_expires_at,helper_address,is_tester').in('id', ids);
+    const { data } = await sb.from('profiles').select('id,name,is_tester').in('id', ids);
     profs = data || [];
   }
   const now = new Date(), byId = {}; profs.forEach(p => byId[p.id] = p);
   proRows = (pros || []).map(p => ({ ...p, pr: byId[p.profile_id] })).filter(r => {
-    const pr = r.pr; if (!pr || pr.last_lat == null || pr.last_lng == null) return false;
+    const pr = r.pr; if (!pr || r.lat == null || r.lng == null) return false;
     if (r.profile_id === me.id) return true;                 // always show myself
     if (r.status === 'suspended') return false;
     if (pr.is_tester && !myProfile.is_tester) return false;   // testers only see testers
-    return pr.visible_on_map && pr.show_on_map && (!pr.helper_expires_at || new Date(pr.helper_expires_at) > now);
+    return r.visible && r.expires_at && new Date(r.expires_at) > now;   // the Pro listing's own pause/expiry
   });
   renderProPins();
 }
@@ -807,17 +807,17 @@ async function loadMapPros(){
 function renderProPins(){
   if (!pmap) return;
   proMarkers.forEach(m => m.remove()); proMarkers = [];
-  const myLat = myProfile.helper_lat, myLng = myProfile.helper_lng, km = (myPro && myPro.service_radius_km) || 25;
+  const myLat = myPro && myPro.lat, myLng = myPro && myPro.lng, km = (myPro && myPro.service_radius_km) || 25;
   let nearby = 0;
   // others first, me last so my pin sits on top
   const rows = [...proRows].sort((a, b) => (a.profile_id === me.id) - (b.profile_id === me.id));
   rows.forEach(r => {
     const mine = r.profile_id === me.id;
-    const [la, ln] = mine ? [myLat ?? r.pr.last_lat, myLng ?? r.pr.last_lng] : fuzz(r.profile_id, r.pr.last_lat, r.pr.last_lng);
-    if (!mine && myLat != null && kmBetween(myLat, myLng, r.pr.last_lat, r.pr.last_lng) <= km) nearby++;
+    const [la, ln] = mine ? [r.lat, r.lng] : fuzz(r.profile_id, r.lat, r.lng);
+    if (!mine && myLat != null && kmBetween(myLat, myLng, r.lat, r.lng) <= km) nearby++;
     const t = TRADES.find(x => x.key === (r.trades || [])[0]);
     const el = document.createElement('div');
-    const paused = mine && myProfile.visible_on_map === false;
+    const paused = mine && !r.visible;
     el.className = 'ppin' + (mine ? ' me' : '') + (paused ? ' dim' : '');
     el.innerHTML = esc(t ? t.emoji : '🔧') + (r.licence_verified_at ? '<span class="v">✓</span>' : '') + (mine ? '<span class="you">You</span>' : '');
     el.onclick = ev => { ev.stopPropagation(); showProCard(r, mine); };
@@ -831,13 +831,13 @@ function showProCard(r, mine){
   const pr = r.pr || {}, verified = !!r.licence_verified_at;
   const trades = (r.trades || []).map(tradeLabel).join(' · ');
   const badge = verified ? '<span class="pill ver">✓ Verified licence</span>' : '<span class="pill none">Licence not verified</span>';
-  const paused = mine && myProfile.visible_on_map === false;
+  const paused = mine && !r.visible;
   $('pcardm').innerHTML = `<button class="x" type="button" aria-label="Close" onclick="$('pcardm').classList.add('hidden')">×</button>
     <div class="nm">${esc(mine ? 'You — ' + (pr.name || '') : (pr.name || 'Pro'))}</div>
     ${r.business_name ? `<div class="bz">${esc(r.business_name)}</div>` : ''}
     <div class="tr">${esc(trades)}</div>
     <div style="margin-top:6px">${badge}${paused ? ' <span class="pill pend">Listing paused</span>' : ''}</div>
-    <div class="ar">📍 ${esc(areaLabel(pr.helper_address) || 'Area not set')}${mine ? '' : ' · approximate'}</div>
+    <div class="ar">📍 ${esc(areaLabel(r.address) || 'Area not set')}${mine ? '' : ' · approximate'}</div>
     ${mine ? '<div class="gap"></div><button class="btn btn-ghost" type="button" onclick="goTab(\'profile\')">Edit my Pro profile</button>' : ''}`;
   $('pcardm').classList.remove('hidden');
 }
@@ -952,31 +952,32 @@ function renderProfileHead(){
   const verified = !!p.licence_verified_at, hasLic = !!(myCred && myCred.licence_number);
   $('st-pill').innerHTML = p.status === 'suspended' ? '<span class="pill sus">Pro listing suspended</span>'
     : verified ? '<span class="pill ver">✓ Verified licence</span>' : hasLic ? '<span class="pill pend">Licence check pending</span>' : '<span class="pill none">No licence added</span>';
-  const expired = !pr.helper_expires_at || new Date(pr.helper_expires_at) <= new Date();
-  const paused = pr.visible_on_map === false;
+  const expired = !p.expires_at || new Date(p.expires_at) <= new Date();
+  const paused = p.visible === false;
   $('st-note').textContent = p.status === 'suspended' ? 'Your Pro listing is hidden. Contact support@yoodle.ca.'
     : paused ? 'Your listing is paused — homeowners can’t see your pin.'
     : verified ? 'Homeowners see your Pro pin with the Verified badge.'
     : hasLic ? 'You’re on the map. We’ll check your licence and add the Verified badge — usually within a few days.'
     : 'You’re on the map. Add your licence below to get the Verified badge — a licence may be required to activate your Pro profile later.';
   $('st-exp').textContent = paused ? 'Paused' : expired ? 'Expired — tap Save changes to renew'
-    : 'Live until ' + new Date(pr.helper_expires_at).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' });
+    : 'Live until ' + new Date(p.expires_at).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' });
   $('btn-pause').textContent = paused ? 'Resume my listing' : 'Pause my listing';
   $('btn-pause').classList.toggle('hidden', p.status === 'suspended');
 }
 $('btn-pause').onclick = async () => {
-  const resume = myProfile.visible_on_map === false;
+  const resume = myPro.visible === false;
   if (!resume && !$('btn-pause').dataset.confirm) {   // two taps to pause, like yoodle.ca
     $('btn-pause').dataset.confirm = '1'; $('btn-pause').textContent = 'Tap again to pause — your pin will be hidden';
     setTimeout(() => { if ($('btn-pause').dataset.confirm) { delete $('btn-pause').dataset.confirm; renderProfileHead(); } }, 4000);
     return;
   }
   delete $('btn-pause').dataset.confirm;
-  const upd = { visible_on_map: resume };
-  if (resume && (!myProfile.helper_expires_at || new Date(myProfile.helper_expires_at) <= new Date())) upd.helper_expires_at = new Date(Date.now() + PRO_DAYS * 864e5).toISOString();
-  const { error } = await sb.from('profiles').update(upd).eq('id', me.id);
+  // pauses/resumes the Pro listing only — the helper listing on yoodle.ca is separate (pros_v2)
+  const { error } = await sb.rpc('set_my_pro_listing', { p_visible: resume });
   if (error) return toast('Couldn’t update your listing. Please try again.');
-  Object.assign(myProfile, upd); renderProfileHead(); toast(resume ? 'Your listing is live again ✓' : 'Listing paused');
+  myPro.visible = resume;
+  if (resume && (!myPro.expires_at || new Date(myPro.expires_at) <= new Date())) myPro.expires_at = new Date(Date.now() + PRO_DAYS * 864e5).toISOString();
+  _prosAt = 0; renderProfileHead(); toast(resume ? 'Your Pro listing is live again ✓' : 'Pro listing paused');
 };
 
 /* ---------- account tools (same as yoodle.ca Settings) ---------- */
@@ -1001,11 +1002,32 @@ $('t-email').onchange = async e => {
   myProfile.email_opt_out = optOut; toast(optOut ? 'Email alerts off' : 'Email alerts on');
 };
 $('btn-signout').onclick = () => signOut();
-$('btn-delete').onclick = () => { $('del-in').value = ''; setMsg('msg-del',''); $('del-sheet').classList.add('open'); };
+let delMode = 'account';
+function openDel(mode){
+  delMode = mode;
+  $('del-title').textContent = mode === 'pro' ? 'Delete your Pro profile?' : 'Delete your account?';
+  $('del-sub').textContent = mode === 'pro'
+    ? 'This removes your Pro listing, map pin and licence details. Your Yoodle account, helper listing, messages and ratings stay. You can set up a Pro profile again later.'
+    : 'This removes your Yoodle account everywhere — your Pro profile, helper listing, jobs, messages and ratings. It can\u2019t be undone.';
+  $('del-go').textContent = mode === 'pro' ? 'Delete my Pro profile' : 'Delete my account';
+  $('del-in').value = ''; setMsg('msg-del',''); $('del-sheet').classList.add('open');
+}
+$('btn-delete').onclick = () => openDel('account');
+$('btn-delpro').onclick = () => openDel('pro');
 $('del-close').onclick = () => $('del-sheet').classList.remove('open');
 $('del-go').onclick = async () => {
   if ($('del-in').value.trim() !== 'DELETE') return setMsg('msg-del', 'Type DELETE to confirm.', 'err');
   const b = $('del-go'); b.disabled = true; setMsg('msg-del', 'Deleting…');
+  if (delMode === 'pro') {
+    const { error } = await sb.rpc('delete_my_pro_profile');
+    b.disabled = false;
+    if (error) return setMsg('msg-del', 'Couldn\u2019t delete your Pro profile. Please try again.', 'err');
+    $('del-sheet').classList.remove('open');
+    myPro = null; myCred = null; proRows = []; _prosAt = 0; currentTab = null;
+    setNav(false); openSetup(false);
+    toast('Your Pro profile was deleted. Your Yoodle account is unchanged.');
+    return;
+  }
   const { error } = await sb.rpc('delete_my_account');
   b.disabled = false;
   if (error) return setMsg('msg-del', 'Couldn’t delete your account. Please email support@yoodle.ca.', 'err');
