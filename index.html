@@ -146,6 +146,8 @@
   #chat .ch-head{background:#000;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:10px}
   #chat .ch-back{background:none;border:0;color:#fff;font-size:26px;line-height:1;cursor:pointer;padding:4px 8px}
   #chat .ch-nm{font-weight:800}
+  #chat .ch-decline{flex:0 0 auto;background:transparent;border:1.5px solid #fff;color:#fff;border-radius:10px;padding:7px 12px;font:inherit;font-weight:800;font-size:14px;cursor:pointer}
+  #chat .ch-decline.arm{background:#C0392B;border-color:#C0392B}
   #chat .ch-sub{color:#B9C6CF;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   #chat .ch-list{flex:1;overflow-y:auto;padding:14px 12px;display:flex;flex-direction:column;gap:6px;max-width:560px;width:100%;margin:0 auto}
   .bub{max-width:80%;padding:9px 12px;border-radius:16px;font-size:15.5px;line-height:1.35;white-space:pre-wrap;word-wrap:break-word}
@@ -226,7 +228,7 @@
       <button class="btn btn-ghost" id="cta-signin" type="button">Already on Yoodle? Sign in</button>
     </div>
   </section>
-  <footer>Yoodle Pros is part of <a href="https://yoodle.ca">yoodle.ca</a> · <a href="mailto:support@yoodle.ca">support@yoodle.ca</a></footer>
+  <footer>Yoodle Pros is part of <a href="https://yoodle.ca">yoodle.ca</a> · <a href="/terms.html">Pro Terms</a> · <a href="mailto:support@yoodle.ca">support@yoodle.ca</a></footer>
 </main>
 
 <!-- ===== Signed-in app ===== -->
@@ -279,14 +281,14 @@
 
       <div class="fs">
         <h3>Where you work</h3>
-        <p class="hint">Your street or neighbourhood. Your exact address is never shown — the pin sits about 100 m away.</p>
+        <p class="hint"><b>Your business address</b> — the address on your invoices. It is <b>shown in full</b> on your Pro profile and on the Yoodle map.</p>
         <div class="field">
           <div class="locrow">
-            <input class="in" id="f-loc" autocomplete="off" placeholder="Street name, city">
+            <input class="in" id="f-loc" autocomplete="off" placeholder="e.g. 25 King St W, Toronto">
             <button class="gpsbtn" id="btn-gps" type="button" aria-label="Use my location">📍 GPS</button>
           </div>
           <div class="sugg hidden" id="loc-sugg"></div>
-          <div class="confirm hidden" id="loc-confirm">Is this your street?<br><b id="loc-confirm-txt"></b>
+          <div class="confirm hidden" id="loc-confirm">Is this your business address?<br><b id="loc-confirm-txt"></b>
             <div class="acts"><button class="y" id="loc-yes" type="button">Yes, that's right</button><button id="loc-no" type="button">No, I'll type it</button></div></div>
           <div class="locok hidden" id="loc-ok"></div>
           <div class="msg" id="msg-loc"></div>
@@ -324,6 +326,9 @@
         </div>
       </div>
 
+      <div class="fs" id="pro-terms-box">
+        <label class="chk"><input type="checkbox" id="f-proterms"><span>I agree to the <a href="/terms.html" target="_blank" rel="noopener">Yoodle Pro Terms</a>, including that my <b>business address is shown publicly</b>.</span></label>
+      </div>
       <div class="fs" id="terms-box">
         <label class="chk"><input type="checkbox" id="f-terms"><span>I agree to Yoodle's <a href="https://yoodle.ca/terms" target="_blank" rel="noopener">Terms of Use</a> and <a href="https://yoodle.ca/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
       </div>
@@ -373,6 +378,7 @@
           <a href="mailto:support@yoodle.ca">Contact us · support@yoodle.ca</a>
           <a href="https://yoodle.ca/faq.html" target="_blank" rel="noopener">FAQ ›</a>
           <a href="https://yoodle.ca/terms" target="_blank" rel="noopener">Terms of Use ›</a>
+          <a href="/terms.html" target="_blank" rel="noopener">Yoodle Pro Terms ›</a>
           <a href="https://yoodle.ca/privacy" target="_blank" rel="noopener">Privacy Policy ›</a>
         </div>
         <p class="hint" style="margin:10px 0 0">To report someone, open your chat with them on yoodle.ca and tap Report. We review reports within 24 hours.</p>
@@ -397,7 +403,8 @@
 <div id="chat" class="hidden" role="dialog" aria-modal="true">
   <div class="ch-head">
     <button class="ch-back" id="ch-back" type="button" aria-label="Back">‹</button>
-    <div style="min-width:0"><div class="ch-nm" id="ch-nm"></div><div class="ch-sub" id="ch-sub"></div></div>
+    <div style="min-width:0;flex:1"><div class="ch-nm" id="ch-nm"></div><div class="ch-sub" id="ch-sub"></div></div>
+    <button class="ch-decline hidden" id="ch-decline" type="button">Decline</button>
   </div>
   <div class="ch-list" id="ch-list"></div>
   <div class="ch-form" id="ch-form">
@@ -519,6 +526,7 @@ function showLanding(){
 }
 
 /* ---------- helpers ---------- */
+const PRO_TERMS_VERSION = 'pro-2026-10';   // must match upsert_my_pro_profile (pros_v3)
 const PRO_DAYS = 365;  // Pro listing lasts 1 year (Roman, 10 Oct) — set by the RPC; used for display only
 let TRADES = [];       // from pro_trades
 let myProfile = null, myPro = null, myCred = null;
@@ -532,7 +540,7 @@ const VIEWS = ['loading','v-suspended','v-setup','v-map','v-activity','v-message
 function show(...views){ VIEWS.forEach(v => $(v).classList.toggle('hidden', !views.includes(v))); window.scrollTo(0,0); }
 function setNav(on){ $('bnav').classList.toggle('hidden', !on); document.body.classList.toggle('has-nav', on); }
 function esc(t){ return String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
-const round3 = n => Math.round(n * 1000) / 1000;   // ~100 m, never the front door
+const exact6 = n => Math.round(n * 1e6) / 1e6;   // business address is public and exact (Pro Terms, 10 Oct 2026)
 const tradeLabel = k => { const t = TRADES.find(x => x.key === k); return t ? t.emoji + ' ' + t.label : k; };
 
 /* ---------- start ---------- */
@@ -597,11 +605,13 @@ function openSetup(isEdit){
   $('f-insexp').value = myCred?.insurance_expires || '';
   $('terms-box').classList.toggle('hidden', !!myProfile.terms_accepted_at);
   $('f-terms').checked = false;
+  $('pro-terms-box').classList.toggle('hidden', !!(myPro && myPro.pro_terms_version === PRO_TERMS_VERSION));
+  $('f-proterms').checked = false;
   setMsg('msg-save','');
   // Pro listing has its own location (pros_v2); a helper joining gets their helper area as a starting point
   const src = myPro && myPro.lat != null ? { address: myPro.address, lat: myPro.lat, lng: myPro.lng }
             : { address: myProfile.helper_address, lat: myProfile.helper_lat, lng: myProfile.helper_lng };
-  if (src.lat != null && src.address && !isVagueText(src.address)) setLoc(src);
+  if (src.lat != null && src.address && /^\d/.test(String(src.address).trim())) setLoc(src);   // needs a street number (Pro Terms)
   else { setLoc(null); $('f-loc').value = src.address || ''; }
   if (isEdit) { renderProfileHead(); show('pf-head','v-setup','pf-tools'); loadTools(); }
   else show('v-setup');
@@ -615,14 +625,17 @@ function isVagueItem(it){
   return !(a.road || a.neighbourhood || a.suburb || a.quarter || a.hamlet || a.residential);
 }
 const isVagueText = t => String(t||'').split(',').filter(x => x.trim()).length <= 2;
-function fmtAddr(it){
+function fmtAddr(it){   // full business address incl. street number (public, Pro Terms)
   const a = it.address || {};
-  const parts = [a.road, a.neighbourhood || a.suburb || a.quarter || a.residential,
-                 a.city || a.town || a.village || a.municipality, a.state || a.province];
+  const street = a.road ? ((a.house_number ? a.house_number + ' ' : '') + a.road) : '';
+  const parts = [street, a.neighbourhood || a.suburb || a.quarter || a.residential,
+                 a.city || a.town || a.village || a.municipality, a.state || a.province, a.postcode];
   const out = [];
-  parts.forEach(p => { if (p && !out.includes(p)) out.push(p); });   // never the house number
+  parts.forEach(p => { if (p && !out.includes(p)) out.push(p); });
   return out.join(', ');
 }
+const hasNumber = it => !!(it && it.address && it.address.house_number && it.address.road);
+const NEED_NUMBER = 'Please enter the full business address with the street number, e.g. 25 King St W, Toronto.';
 
 let _locT = null, _locSeq = 0;
 $('f-loc').addEventListener('input', () => {
@@ -650,14 +663,13 @@ async function searchLoc(q){
 
 function pickLoc(it){
   $('loc-sugg').classList.add('hidden');
-  if (isVagueItem(it)) {
-    loc = null; $('f-loc').value = '';
-    $('f-loc').placeholder = 'Street name in ' + ((it.address||{}).city || (it.address||{}).town || it.name || 'your city');
-    setMsg('msg-loc','Please pick a street or neighbourhood, not just a city — it helps homeowners near you find you.', 'err');
+  if (isVagueItem(it) || !hasNumber(it)) {
+    loc = null;
+    setMsg('msg-loc', NEED_NUMBER, 'err');
     $('f-loc').focus({preventScroll:true});
     return;
   }
-  setLoc({ address: fmtAddr(it) || it.display_name, lat: round3(+it.lat), lng: round3(+it.lon) });
+  setLoc({ address: fmtAddr(it), lat: exact6(+it.lat), lng: exact6(+it.lon) });
 }
 
 $('btn-gps').onclick = () => {
@@ -666,10 +678,10 @@ $('btn-gps').onclick = () => {
   navigator.geolocation.getCurrentPosition(async pos => {
     try {
       const { latitude: la, longitude: lo } = pos.coords;
-      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=17&lat=${la}&lon=${lo}`, { headers: { 'Accept-Language': 'en' } });
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=18&lat=${la}&lon=${lo}`, { headers: { 'Accept-Language': 'en' } });
       const it = await r.json();
-      if (!it || !it.address || isVagueItem(it)) { setMsg('msg-loc','Couldn’t find your street. Please type it.', 'err'); return; }
-      gpsPending = { address: fmtAddr(it), lat: round3(la), lng: round3(lo) };
+      if (!it || !it.address || isVagueItem(it) || !hasNumber(it)) { setMsg('msg-loc','Couldn’t find your exact address. Please type it with the street number.', 'err'); return; }
+      gpsPending = { address: fmtAddr(it), lat: exact6(+it.lat), lng: exact6(+it.lon) };   // the address point, not the phone's GPS fix
       $('loc-confirm-txt').textContent = gpsPending.address;
       $('loc-confirm').classList.remove('hidden'); setMsg('msg-loc','');
     } catch(_) { setMsg('msg-loc','Couldn’t look up your street. Please type it.', 'err'); }
@@ -690,6 +702,8 @@ $('btn-save').onclick = async () => {
   // licence is optional (Roman, 10 Oct) — but if they start it, the number is needed
   if (($('f-lbody').value || $('f-ltype').value.trim()) && !$('f-lnum').value.trim())
     return fail('Add your licence number, or leave the licence section empty.', $('f-lnum'));
+  const needProTerms = !(myPro && myPro.pro_terms_version === PRO_TERMS_VERSION);
+  if (needProTerms && !$('f-proterms').checked) return fail('Please agree to the Yoodle Pro Terms.', $('pro-terms-box'));
   const needTerms = !myProfile.terms_accepted_at;
   if (needTerms && !$('f-terms').checked) return fail('Please agree to the Terms of Use.', $('terms-box'));
 
@@ -700,7 +714,8 @@ $('btn-save').onclick = async () => {
     p_address: loc.address, p_lat: loc.lat, p_lng: loc.lng, p_bio: $('f-bio').value.trim() || null,
     p_licence_type: $('f-ltype').value.trim() || null, p_licence_body: $('f-lbody').value || null,
     p_licence_number: $('f-lnum').value.trim() || null, p_insurer: $('f-ins').value.trim() || null,
-    p_insurance_expires: $('f-insexp').value || null
+    p_insurance_expires: $('f-insexp').value || null,
+    p_terms_version: PRO_TERMS_VERSION
   });
   if (e1) { b.disabled = false; return fail(/suspended/i.test(e1.message) ? 'Your account is suspended.' : /words/i.test(e1.message) ? 'Your profile contains words that aren’t allowed on Yoodle.' : 'Couldn’t save your Pro details. Please try again.'); }
 
@@ -813,7 +828,7 @@ function renderProPins(){
   const rows = [...proRows].sort((a, b) => (a.profile_id === me.id) - (b.profile_id === me.id));
   rows.forEach(r => {
     const mine = r.profile_id === me.id;
-    const [la, ln] = mine ? [r.lat, r.lng] : fuzz(r.profile_id, r.lat, r.lng);
+    const [la, ln] = [r.lat, r.lng];   // business addresses are public — exact pins
     if (!mine && myLat != null && kmBetween(myLat, myLng, r.lat, r.lng) <= km) nearby++;
     const t = TRADES.find(x => x.key === (r.trades || [])[0]);
     const el = document.createElement('div');
@@ -837,7 +852,7 @@ function showProCard(r, mine){
     ${r.business_name ? `<div class="bz">${esc(r.business_name)}</div>` : ''}
     <div class="tr">${esc(trades)}</div>
     <div style="margin-top:6px">${badge}${paused ? ' <span class="pill pend">Listing paused</span>' : ''}</div>
-    <div class="ar">📍 ${esc(areaLabel(r.address) || 'Area not set')}${mine ? '' : ' · approximate'}</div>
+    <div class="ar">📍 ${esc(r.address || 'Address not set')}</div>
     ${mine ? '<div class="gap"></div><button class="btn btn-ghost" type="button" onclick="goTab(\'profile\')">Edit my Pro profile</button>' : ''}`;
   $('pcardm').classList.remove('hidden');
 }
@@ -909,6 +924,10 @@ async function openChat(c){
   $('ch-sub').textContent = c.title || '';
   const ro = c.task_status === 'completed';
   $('ch-form').classList.toggle('hidden', ro); $('ch-ro').classList.toggle('hidden', !ro);
+  // Decline a job request (like yoodle.ca): only the pro, only open help_offer requests
+  const canDecline = inquiryIds.has(c.task_id) && c.applicant_id === me.id && c.task_status === 'claimed';
+  $('ch-decline').classList.toggle('hidden', !canDecline);
+  $('ch-decline').classList.remove('arm'); $('ch-decline').textContent = 'Decline'; delete $('ch-decline').dataset.arm;
   $('ch-list').innerHTML = '<p class="muted" style="text-align:center">Loading…</p>';
   $('chat').classList.remove('hidden');
   await loadChat(true);
@@ -926,6 +945,25 @@ async function loadChat(scroll){
 }
 function closeChat(){ clearInterval(_chatPoll); chatC = null; $('chat').classList.add('hidden'); loadConvs(); }
 $('ch-back').onclick = closeChat;
+$('ch-decline').onclick = async () => {
+  const b = $('ch-decline');
+  if (!b.dataset.arm) {   // two taps, no browser pop-up
+    b.dataset.arm = '1'; b.classList.add('arm'); b.textContent = 'Tap to decline';
+    setTimeout(() => { if (b.dataset.arm) { delete b.dataset.arm; b.classList.remove('arm'); b.textContent = 'Decline'; } }, 4000);
+    return;
+  }
+  if (!chatC || b.disabled) return;
+  b.disabled = true;
+  const c = chatC, name = (myProfile && myProfile.name) || 'The pro';
+  const { error } = await sb.from('tasks').update({ status: 'cancelled' }).eq('id', c.task_id);
+  if (error) { b.disabled = false; return toast('Couldn\u2019t decline. Please try again.'); }
+  await sb.from('messages').insert({ conversation_id: c.conversation_id, task_id: c.task_id, sender_id: me.id, receiver_id: c.poster_id,
+    body: '\u{1F6AB} ' + name + ' declined this request.' });   // same system message as yoodle.ca
+  await sb.from('conversations').update({ status: 'archived' }).eq('id', c.conversation_id);
+  b.disabled = false;
+  closeChat();
+  toast('\u{1F6AB} Request declined');
+};
 $('ch-send').onclick = async () => {
   const body = $('ch-in').value.trim(); if (!body || !chatC) return;
   const b = $('ch-send'); if (b.disabled) return; b.disabled = true;
