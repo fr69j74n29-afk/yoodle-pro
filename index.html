@@ -18,6 +18,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link rel="stylesheet" href="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.css">
+<script src="https://unpkg.com/maplibre-gl@5.24.0/dist/maplibre-gl.js"></script>
 <style>
   :root{
     --bg:#F5F7F9; --surface:#FFFFFF; --ink:#0F2A3D; --ink2:#4A5F6E; --muted:#7A8B97;
@@ -169,6 +171,25 @@
   .linklist a{display:block;padding:10px 0;border-top:1px solid var(--border);text-decoration:none;font-weight:700;color:var(--ink)}
   .linklist a:first-child{border-top:0}
   .btn-danger{background:#fff;color:var(--err);border:1.5px solid #F2C4BF}
+  /* ===== map tab (10 Oct 2026) ===== */
+  #v-map{position:fixed;left:0;right:0;top:var(--hdr-h,54px);bottom:calc(64px + env(safe-area-inset-bottom));padding:0;z-index:1}
+  #pmap{position:absolute;inset:0;background:#E9EEF1}
+  .map-chip{position:absolute;top:12px;left:12px;z-index:3;background:#fff;border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-weight:800;font-size:14px;box-shadow:0 2px 10px rgba(15,42,61,.12);max-width:calc(100% - 24px)}
+  .map-chip .s{display:block;font-weight:600;font-size:12.5px;color:var(--ink2)}
+  .map-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--ink2);z-index:2}
+  .ppin{width:38px;height:38px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:grid;place-items:center;font-size:18px;cursor:pointer;position:relative}
+  .ppin .v{position:absolute;right:-5px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;font-size:11px;font-weight:900;display:grid;place-items:center;border:2px solid #fff}
+  .ppin.me{width:46px;height:46px;background:#000;border-color:var(--accent);font-size:21px}
+  .ppin.me .you{position:absolute;bottom:-20px;left:50%;transform:translateX(-50%);background:#000;color:#fff;font-size:11px;font-weight:800;padding:1px 7px;border-radius:999px;white-space:nowrap}
+  .ppin.dim{opacity:.55}
+  .pcardm{position:absolute;left:12px;right:12px;bottom:12px;z-index:4;background:#fff;border-radius:16px;box-shadow:0 6px 24px rgba(15,42,61,.22);padding:14px 16px}
+  .pcardm .x{position:absolute;top:8px;right:10px}
+  .pcardm .nm{font-weight:800;font-size:17px;padding-right:28px}
+  .pcardm .bz{color:var(--ink2);font-size:14px}
+  .pcardm .tr{margin-top:8px;font-weight:700;font-size:14.5px}
+  .pcardm .ar{color:var(--muted);font-size:13.5px;margin-top:4px}
+  .maplibregl-ctrl-attrib{font-size:11px}
+  .pill.none{background:#EEF1F3;color:var(--ink2)}
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;font-size:15px;z-index:80;display:none;max-width:calc(100% - 32px)}
 </style>
 </head>
@@ -199,7 +220,7 @@
   <section class="points">
     <div class="wrap">
       <div class="pt"><div class="ic">📍</div><div><h3>Your own pin on the map</h3><p>Homeowners in your service area see you on the Yoodle map, marked as a Pro.</p></div></div>
-      <div class="pt"><div class="ic">✅</div><div><h3>Verified licence badge</h3><p>Add your licence and insurance. Once we check them, your profile shows Verified.</p></div></div>
+      <div class="pt"><div class="ic">✅</div><div><h3>Verified licence badge</h3><p>Add your licence and we'll check it — your profile then shows Verified.</p></div></div>
       <div class="pt"><div class="ic">💬</div><div><h3>Leads come to you</h3><p>Homeowners message you directly. No bidding, no lead fees, no commission.</p></div></div>
       <div class="gap"></div>
       <button class="btn btn-ghost" id="cta-signin" type="button">Already on Yoodle? Sign in</button>
@@ -278,8 +299,8 @@
       </div>
 
       <div class="fs">
-        <h3>Licence</h3>
-        <p class="hint">Needed for the Verified badge. Only you and the Yoodle team can see these details.</p>
+        <h3>Licence <span class="muted" style="font-weight:600;font-size:14px">(optional for now)</span></h3>
+        <p class="hint">Adding your licence gets you the <b>✓ Verified licence</b> badge. <b>A licence may be required to activate your Pro profile later.</b> Only you and the Yoodle team can see these details.</p>
         <div class="field"><label class="f" for="f-lbody">Issued by</label>
           <select class="in" id="f-lbody">
             <option value="">Choose…</option>
@@ -311,6 +332,14 @@
       <div class="msg" id="msg-save"></div>
       <div class="gap"></div>
       <button class="btn btn-ghost hidden" id="btn-cancel-edit" type="button">Cancel</button>
+    </div>
+
+    <!-- MAP: me + other pros (10 Oct 2026) -->
+    <div id="v-map" class="hidden">
+      <div id="pmap"></div>
+      <div class="map-chip hidden" id="map-chip"></div>
+      <div class="map-msg hidden" id="map-msg"></div>
+      <div class="pcardm hidden" id="pcardm"></div>
     </div>
 
     <!-- ACTIVITY: job inquiries -->
@@ -357,6 +386,7 @@
 <div id="toast"></div>
 
 <nav class="bnav hidden" id="bnav"><div class="in-wrap">
+  <button type="button" data-tab="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map</button>
   <button type="button" data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Activity</button>
   <button type="button" data-tab="messages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages<span class="badge hidden" id="msg-badge"></span></button>
   <button type="button" data-tab="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
@@ -483,7 +513,7 @@ async function signOut(){ await sb.auth.signOut(); }
 function showLanding(){
   $('app').classList.add('hidden'); $('landing').classList.remove('hidden');
   $('hdr-btn').classList.remove('hidden'); $('hdr-btn').textContent = 'Sign in';
-  setNav(false); $('chat').classList.add('hidden'); clearInterval(_chatPoll); currentTab = null; convs = [];
+  setNav(false); $('chat').classList.add('hidden'); clearInterval(_chatPoll); currentTab = null; convs = []; proRows = []; _prosAt = 0;
 }
 
 /* ---------- helpers ---------- */
@@ -496,7 +526,7 @@ let gpsPending = null;
 let editing = false;
 
 function toast(t){ const el=$('toast'); el.textContent=t; el.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(()=>el.style.display='none',3200); }
-const VIEWS = ['loading','v-suspended','v-setup','v-activity','v-messages','pf-head','pf-tools'];
+const VIEWS = ['loading','v-suspended','v-setup','v-map','v-activity','v-messages','pf-head','pf-tools'];
 function show(...views){ VIEWS.forEach(v => $(v).classList.toggle('hidden', !views.includes(v))); window.scrollTo(0,0); }
 function setNav(on){ $('bnav').classList.toggle('hidden', !on); document.body.classList.toggle('has-nav', on); }
 function esc(t){ return String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -514,7 +544,7 @@ async function startApp(){
   } catch(_) {}
   const [tr, pr, pp, pc] = await Promise.all([
     sb.from('pro_trades').select('key,label,emoji,licence_required').order('sort_order'),
-    sb.from('profiles').select('id,name,helper_address,helper_lat,helper_lng,helper_bio,helper_expires_at,visible_on_map,terms_accepted_at,email_opt_out').eq('id', me.id).maybeSingle(),
+    sb.from('profiles').select('id,name,helper_address,helper_lat,helper_lng,helper_bio,helper_expires_at,visible_on_map,terms_accepted_at,email_opt_out,is_tester,last_lat,last_lng').eq('id', me.id).maybeSingle(),
     sb.from('pro_profiles').select('*').eq('profile_id', me.id).maybeSingle(),
     sb.from('pro_credentials').select('*').eq('profile_id', me.id).maybeSingle()
   ]);
@@ -522,7 +552,7 @@ async function startApp(){
   myProfile = pr.data || { id: me.id };
   myPro = pp.data || null;
   myCred = pc.data || null;
-  if (myPro) { setNav(true); goTab(currentTab || 'activity'); loadConvs(); }
+  if (myPro) { setNav(true); goTab(currentTab || 'map'); loadConvs(); }
   else { setNav(false); openSetup(false); }
 }
 
@@ -653,8 +683,9 @@ $('btn-save').onclick = async () => {
   if (name.length < 2) return fail('Please add your name.', $('f-name'));
   if (gpsPending) return fail('Please confirm your GPS address first.', $('loc-confirm'));
   if (!loc) return fail('Please pick your street or neighbourhood from the suggestions.', $('f-loc'));
-  if (!$('f-lbody').value || !$('f-ltype').value.trim() || !$('f-lnum').value.trim())
-    return fail('Please add your licence details.', $('f-lbody'));
+  // licence is optional (Roman, 10 Oct) — but if they start it, the number is needed
+  if (($('f-lbody').value || $('f-ltype').value.trim()) && !$('f-lnum').value.trim())
+    return fail('Add your licence number, or leave the licence section empty.', $('f-lnum'));
   const needTerms = !myProfile.terms_accepted_at;
   if (needTerms && !$('f-terms').checked) return fail('Please agree to the Terms of Use.', $('terms-box'));
 
@@ -662,8 +693,8 @@ $('btn-save').onclick = async () => {
   // 1) pro row first (validates trades) — then the helper fields that put the pin on the map
   const { error: e1 } = await sb.rpc('upsert_my_pro_profile', {
     p_trades: [...sel], p_business_name: $('f-biz').value.trim(), p_radius: +$('f-radius').value,
-    p_licence_type: $('f-ltype').value.trim(), p_licence_body: $('f-lbody').value,
-    p_licence_number: $('f-lnum').value.trim(), p_insurer: $('f-ins').value.trim() || null,
+    p_licence_type: $('f-ltype').value.trim() || null, p_licence_body: $('f-lbody').value || null,
+    p_licence_number: $('f-lnum').value.trim() || null, p_insurer: $('f-ins').value.trim() || null,
     p_insurance_expires: $('f-insexp').value || null
   });
   if (e1) { b.disabled = false; return fail(/suspended/i.test(e1.message) ? 'Your account is suspended.' : 'Couldn’t save your Pro details. Please try again.'); }
@@ -681,21 +712,147 @@ $('btn-save').onclick = async () => {
   if (e2) return fail(/words/i.test(e2.message) ? 'Your profile contains words that aren’t allowed on Yoodle.' : 'Couldn’t save your profile. Please try again.');
 
   const first = !myPro;
-  currentTab = 'profile';
+  currentTab = 'profile'; _prosAt = 0;
   await startApp();   // reload everything → profile tab
   toast(first ? 'You’re live on the Yoodle map! 🎉' : 'Saved ✓');
 };
+
+/* ---------- map: me + other pros (10 Oct 2026) ---------- */
+// MapLibre + OpenFreeMap, same libraries as yoodle.ca. Shows pros only (pending + approved readable by RLS).
+const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
+const OSM_RASTER = { version: 8, sources: { osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '© OpenStreetMap contributors' } }, layers: [{ id: 'osm', type: 'raster', source: 'osm' }] };
+let pmap = null, pmapReady = false, proMarkers = [], proRows = [], _prosAt = 0;
+
+function _hdrH(){ document.documentElement.style.setProperty('--hdr-h', document.querySelector('header.top').offsetHeight + 'px'); }
+window.addEventListener('resize', _hdrH);
+
+// same ~80 m privacy offset idea as yoodle.ca, but stable per person (no jumping on reload)
+function fuzz(id, lat, lng){
+  let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) | 0;
+  const a = (Math.abs(h) % 360) * Math.PI / 180, d = 0.0006 + (Math.abs(h >> 8) % 300) / 1e6;  // ~65–100 m
+  return [lat + d * Math.sin(a), lng + d * Math.cos(a) / Math.cos(lat * Math.PI / 180)];
+}
+function kmBetween(a, b, c, d){ const R = 6371, r = x => x * Math.PI / 180, dl = r(c - a), dn = r(d - b);
+  const h = Math.sin(dl/2)**2 + Math.cos(r(a)) * Math.cos(r(c)) * Math.sin(dn/2)**2; return 2 * R * Math.asin(Math.sqrt(h)); }
+function circle(lat, lng, km){ const pts = [];
+  for (let i = 0; i <= 64; i++) { const t = i / 64 * 2 * Math.PI;
+    pts.push([lng + (km / (111.32 * Math.cos(lat * Math.PI / 180))) * Math.cos(t), lat + (km / 110.574) * Math.sin(t)]); }
+  return { type: 'Feature', geometry: { type: 'Polygon', coordinates: [pts] } }; }
+function areaLabel(addr){ const parts = String(addr || '').split(',').map(x => x.trim()).filter(x => x && !/^\d/.test(x) && x !== 'Canada');
+  return parts.slice(-3).join(', '); }   // never the street number
+
+function mapMsg(t){ $('map-msg').textContent = t || ''; $('map-msg').classList.toggle('hidden', !t); }
+
+function openMap(){
+  _hdrH();
+  if (!window.maplibregl) { mapMsg('The map couldn’t load. Check your connection and try again.'); return; }
+  const lat = myProfile.helper_lat ?? myProfile.last_lat, lng = myProfile.helper_lng ?? myProfile.last_lng;
+  if (lat == null || lng == null) { mapMsg('Add your work area in Profile to see pros near you.'); return; }
+  mapMsg('');
+  if (!pmap) {
+    try {
+      pmap = new maplibregl.Map({ container: 'pmap', style: MAP_STYLE, center: [lng, lat], zoom: 10.5,
+        attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false, touchPitch: false });
+    } catch (e) { mapMsg('The map can’t load on this browser.'); pmap = null; return; }
+    pmap.touchZoomRotate.disableRotation();
+    pmap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    let styled = false;
+    pmap.on('style.load', () => { styled = true; pmapReady = true; drawRing(); });
+    setTimeout(() => { if (!styled && pmap) pmap.setStyle(OSM_RASTER); }, 8000);   // fallback like yoodle.ca
+    pmap.on('click', e => { if (!e.originalEvent.target.closest('.ppin')) $('pcardm').classList.add('hidden'); });
+  } else {
+    pmap.resize();
+  }
+  fitToRadius();
+  if (Date.now() - _prosAt > 60000 || !proRows.length) loadMapPros(); else { drawRing(); renderProPins(); }
+}
+
+function fitToRadius(){
+  const lat = myProfile.helper_lat, lng = myProfile.helper_lng, km = (myPro && myPro.service_radius_km) || 25;
+  if (!pmap || lat == null) return;
+  const dLat = km / 110.574, dLng = km / (111.32 * Math.cos(lat * Math.PI / 180));
+  pmap.fitBounds([[lng - dLng, lat - dLat], [lng + dLng, lat + dLat]], { padding: 30, duration: 0 });
+}
+
+function drawRing(){
+  if (!pmap || !pmapReady || myProfile.helper_lat == null) return;
+  const data = circle(myProfile.helper_lat, myProfile.helper_lng, (myPro && myPro.service_radius_km) || 25);
+  if (pmap.getSource('ring')) { pmap.getSource('ring').setData(data); return; }
+  pmap.addSource('ring', { type: 'geojson', data });
+  pmap.addLayer({ id: 'ring-fill', type: 'fill', source: 'ring', paint: { 'fill-color': '#EA6A12', 'fill-opacity': 0.06 } });
+  pmap.addLayer({ id: 'ring-line', type: 'line', source: 'ring', paint: { 'line-color': '#EA6A12', 'line-width': 2, 'line-dasharray': [2, 2] } });
+}
+
+async function loadMapPros(){
+  _prosAt = Date.now();
+  const { data: pros, error } = await sb.from('pro_profiles').select('profile_id,trades,business_name,status,licence_verified_at');
+  if (error) { mapMsg('Couldn’t load pros. Please try again.'); return; }
+  const ids = (pros || []).map(p => p.profile_id);
+  let profs = [];
+  if (ids.length) {
+    const { data } = await sb.from('profiles').select('id,name,last_lat,last_lng,visible_on_map,show_on_map,helper_expires_at,helper_address,is_tester').in('id', ids);
+    profs = data || [];
+  }
+  const now = new Date(), byId = {}; profs.forEach(p => byId[p.id] = p);
+  proRows = (pros || []).map(p => ({ ...p, pr: byId[p.profile_id] })).filter(r => {
+    const pr = r.pr; if (!pr || pr.last_lat == null || pr.last_lng == null) return false;
+    if (r.profile_id === me.id) return true;                 // always show myself
+    if (r.status === 'suspended') return false;
+    if (pr.is_tester && !myProfile.is_tester) return false;   // testers only see testers
+    return pr.visible_on_map && pr.show_on_map && (!pr.helper_expires_at || new Date(pr.helper_expires_at) > now);
+  });
+  renderProPins();
+}
+
+function renderProPins(){
+  if (!pmap) return;
+  proMarkers.forEach(m => m.remove()); proMarkers = [];
+  const myLat = myProfile.helper_lat, myLng = myProfile.helper_lng, km = (myPro && myPro.service_radius_km) || 25;
+  let nearby = 0;
+  // others first, me last so my pin sits on top
+  const rows = [...proRows].sort((a, b) => (a.profile_id === me.id) - (b.profile_id === me.id));
+  rows.forEach(r => {
+    const mine = r.profile_id === me.id;
+    const [la, ln] = mine ? [myLat ?? r.pr.last_lat, myLng ?? r.pr.last_lng] : fuzz(r.profile_id, r.pr.last_lat, r.pr.last_lng);
+    if (!mine && myLat != null && kmBetween(myLat, myLng, r.pr.last_lat, r.pr.last_lng) <= km) nearby++;
+    const t = TRADES.find(x => x.key === (r.trades || [])[0]);
+    const el = document.createElement('div');
+    const paused = mine && myProfile.visible_on_map === false;
+    el.className = 'ppin' + (mine ? ' me' : '') + (paused ? ' dim' : '');
+    el.innerHTML = esc(t ? t.emoji : '🔧') + (r.licence_verified_at ? '<span class="v">✓</span>' : '') + (mine ? '<span class="you">You</span>' : '');
+    el.onclick = ev => { ev.stopPropagation(); showProCard(r, mine); };
+    proMarkers.push(new maplibregl.Marker({ element: el }).setLngLat([ln, la]).addTo(pmap));
+  });
+  $('map-chip').innerHTML = `${nearby} other pro${nearby === 1 ? '' : 's'} in your area<span class="s">Within your ${km} km travel radius</span>`;
+  $('map-chip').classList.remove('hidden');
+}
+
+function showProCard(r, mine){
+  const pr = r.pr || {}, verified = !!r.licence_verified_at;
+  const trades = (r.trades || []).map(tradeLabel).join(' · ');
+  const badge = verified ? '<span class="pill ver">✓ Verified licence</span>' : '<span class="pill none">Licence not verified</span>';
+  const paused = mine && myProfile.visible_on_map === false;
+  $('pcardm').innerHTML = `<button class="x" type="button" aria-label="Close" onclick="$('pcardm').classList.add('hidden')">×</button>
+    <div class="nm">${esc(mine ? 'You — ' + (pr.name || '') : (pr.name || 'Pro'))}</div>
+    ${r.business_name ? `<div class="bz">${esc(r.business_name)}</div>` : ''}
+    <div class="tr">${esc(trades)}</div>
+    <div style="margin-top:6px">${badge}${paused ? ' <span class="pill pend">Listing paused</span>' : ''}</div>
+    <div class="ar">📍 ${esc(areaLabel(pr.helper_address) || 'Area not set')}${mine ? '' : ' · approximate'}</div>
+    ${mine ? '<div class="gap"></div><button class="btn btn-ghost" type="button" onclick="goTab(\'profile\')">Edit my Pro profile</button>' : ''}`;
+  $('pcardm').classList.remove('hidden');
+}
 
 /* ---------- tabs ---------- */
 let currentTab = null;
 function goTab(t){
   currentTab = t;
   document.querySelectorAll('#bnav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
-  if (t === 'activity') { show('v-activity'); renderActivity(); }
+  if (t === 'map') { show('v-map'); openMap(); }
+  else if (t === 'activity') { show('v-activity'); renderActivity(); }
   else if (t === 'messages') { show('v-messages'); renderMessages(); }
   else openSetup(true);   // profile = same form as sign-up + account tools
 }
-document.querySelectorAll('#bnav button').forEach(b => b.onclick = () => { goTab(b.dataset.tab); if (b.dataset.tab !== 'profile') loadConvs(); });
+document.querySelectorAll('#bnav button').forEach(b => b.onclick = () => { goTab(b.dataset.tab); if (b.dataset.tab === 'activity' || b.dataset.tab === 'messages') loadConvs(); });
 
 /* ---------- conversations (shared with yoodle.ca) ---------- */
 let convs = [], inquiryIds = new Set(), _convAt = 0;
@@ -792,15 +949,16 @@ function renderProfileHead(){
   $('st-avatar').textContent = nm.trim().charAt(0).toUpperCase() || '?';
   $('st-name').textContent = nm;
   $('st-biz').textContent = p.business_name || '';
-  const verified = !!p.licence_verified_at;
+  const verified = !!p.licence_verified_at, hasLic = !!(myCred && myCred.licence_number);
   $('st-pill').innerHTML = p.status === 'suspended' ? '<span class="pill sus">Pro listing suspended</span>'
-    : verified ? '<span class="pill ver">✓ Verified licence</span>' : '<span class="pill pend">Licence check pending</span>';
+    : verified ? '<span class="pill ver">✓ Verified licence</span>' : hasLic ? '<span class="pill pend">Licence check pending</span>' : '<span class="pill none">No licence added</span>';
   const expired = !pr.helper_expires_at || new Date(pr.helper_expires_at) <= new Date();
   const paused = pr.visible_on_map === false;
   $('st-note').textContent = p.status === 'suspended' ? 'Your Pro listing is hidden. Contact support@yoodle.ca.'
     : paused ? 'Your listing is paused — homeowners can’t see your pin.'
     : verified ? 'Homeowners see your Pro pin with the Verified badge.'
-    : 'You’re on the map. We’ll check your licence and add the Verified badge — usually within a few days.';
+    : hasLic ? 'You’re on the map. We’ll check your licence and add the Verified badge — usually within a few days.'
+    : 'You’re on the map. Add your licence below to get the Verified badge — a licence may be required to activate your Pro profile later.';
   $('st-exp').textContent = paused ? 'Paused' : expired ? 'Expired — tap Save changes to renew'
     : 'Live until ' + new Date(pr.helper_expires_at).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' });
   $('btn-pause').textContent = paused ? 'Resume my listing' : 'Pause my listing';
