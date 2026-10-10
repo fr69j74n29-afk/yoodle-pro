@@ -806,12 +806,16 @@ function openMap(){
   if (!pmap) {
     try {
       pmap = new maplibregl.Map({ container: 'pmap', style: MAP_STYLE, center: [lng, lat], zoom: 10.5,
-        attributionControl: { compact: true }, dragRotate: false, pitchWithRotate: false, touchPitch: false });
+        attributionControl: false, dragRotate: false, pitchWithRotate: false, touchPitch: false });
     } catch (e) { mapMsg('The map can’t load on this browser.'); pmap = null; return; }
     pmap.touchZoomRotate.disableRotation();
     pmap.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+    // credit like yoodle.ca: OpenFreeMap, bottom-left, starts minimized as the small "i" (tap to expand)
+    pmap.addControl(new maplibregl.AttributionControl({ compact: true, customAttribution: '<a href="https://openfreemap.org" target="_blank" rel="noopener">OpenFreeMap</a>' }), 'bottom-left');
+    const collapseAttrib = () => { try { document.querySelectorAll('#pmap .maplibregl-ctrl-attrib.maplibregl-compact-show').forEach(el => el.classList.remove('maplibregl-compact-show')); } catch (_) {} };
+    pmap.once('idle', collapseAttrib);
     let styled = false;
-    pmap.on('style.load', () => { styled = true; pmapReady = true; drawRing(); });
+    pmap.on('style.load', () => { styled = true; pmapReady = true; drawRing(); setTimeout(collapseAttrib, 300); });
     setTimeout(() => { if (!styled && pmap) pmap.setStyle(OSM_RASTER); }, 8000);   // fallback like yoodle.ca
     pmap.on('click', e => { if (!e.originalEvent.target.closest('.ppin')) $('pcardm').classList.add('hidden'); });
   } else {
