@@ -175,8 +175,11 @@
   .btn-danger{background:#fff;color:var(--err);border:1.5px solid #F2C4BF}
   /* settings (gear in header, like yoodle.ca) */
   .hdr-r{display:flex;align-items:center;gap:4px}
-  .gearbtn{background:none;border:0;color:#fff;cursor:pointer;padding:6px;display:flex;opacity:.9}
-  .gearbtn svg{width:24px;height:24px}
+  .set-gear{flex-shrink:0;width:44px;height:44px;border-radius:50%;background:var(--surface);border:1.5px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0;margin-left:auto;align-self:flex-start}
+  .set-gear:active{transform:scale(.94)}
+  .set-gear svg{width:22px;height:22px}
+  .trade-ro{margin-top:6px;font-weight:700;font-size:14.5px}
+  #btn-chtrade{white-space:nowrap}
   #settings{position:fixed;inset:0;background:var(--bg);z-index:45;display:flex;flex-direction:column}
   #settings .st-top{background:#000;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:10px}
   #settings .st-top button{background:none;border:0;color:#fff;font-size:26px;line-height:1;cursor:pointer;padding:4px 8px}
@@ -214,7 +217,6 @@
     </a>
     <div class="hdr-r">
       <button class="linkbtn" id="hdr-btn" type="button">Sign in</button>
-      <button class="gearbtn hidden" id="hdr-gear" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
   </div>
 </header>
@@ -259,7 +261,9 @@
       <div class="card" style="margin-top:0">
         <div class="pcard">
           <div class="avatar" id="st-avatar">?</div>
-          <div><h2 id="st-name" style="margin:0"></h2><div class="muted" id="st-biz"></div><div style="margin-top:6px" id="st-pill"></div></div>
+          <div style="flex:1;min-width:0"><h2 id="st-name" style="margin:0"></h2><div class="muted" id="st-biz"></div><div class="trade-ro" id="st-trades"></div><div style="margin-top:6px" id="st-pill"></div></div>
+          <!-- Settings gear (same place as yoodle.ca Profile) -->
+          <button class="set-gear" id="pf-gear" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
         </div>
         <p class="muted" id="st-note" style="margin:14px 0 0"></p>
         <ul class="kv">
@@ -275,17 +279,17 @@
       <h1 id="setup-title">Set up your Pro profile</h1>
       <p class="lead" id="setup-lead">Takes about 2 minutes. Homeowners near you will see your pin on the Yoodle map.</p>
 
-      <div class="fs">
+      <div class="fs" id="fs-trade">
         <h3>Your trade</h3>
         <p class="hint">Pick all that apply.</p>
         <div class="tgrid" id="trade-grid"></div>
       </div>
 
-      <div class="fs">
+      <div class="fs" id="fs-you">
         <h3>You and your business</h3>
         <div class="field"><label class="f" for="f-name">Your name</label>
           <input class="in" id="f-name" maxlength="60" autocomplete="name" placeholder="First and last name"></div>
-        <div class="field"><label class="f" for="f-biz">Business name <span class="muted">(optional)</span></label>
+        <div class="field"><label class="f" for="f-biz">Business name</label>
           <input class="in" id="f-biz" maxlength="80" autocomplete="organization" placeholder="e.g. Smith Plumbing"></div>
         <div class="field"><label class="f" for="f-phone">Mobile phone <span class="muted">(optional)</span></label>
           <input class="in" id="f-phone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="e.g. 416 555 0123">
@@ -295,7 +299,7 @@
           <textarea class="in" id="f-bio" maxlength="500" placeholder="Years in the trade, what you do, areas you cover…"></textarea></div>
       </div>
 
-      <div class="fs">
+      <div class="fs" id="fs-where">
         <h3>Where you work</h3>
         <p class="hint"><b>Your business address</b> — the address on your invoices. It is <b>shown in full</b> on your Pro profile and on the Yoodle map.</p>
         <div class="field">
@@ -316,7 +320,7 @@
           </select></div>
       </div>
 
-      <div class="fs">
+      <div class="fs" id="fs-lic">
         <h3>Licence <span class="muted" style="font-weight:600;font-size:14px">(optional for now)</span></h3>
         <p class="hint">Adding your licence gets you the <b>✓ Verified licence</b> badge. <b>A licence may be required to activate your Pro profile later.</b> Only you and the Yoodle team can see these details.</p>
         <div class="field"><label class="f" for="f-lbody">Issued by</label>
@@ -411,6 +415,11 @@
         <h3>Notifications</h3>
         <div class="row"><div><div class="t">Email me about unread messages</div><div class="d">One email when a message has waited 30 minutes unread.</div></div>
           <label class="sw"><input type="checkbox" id="t-email"><span></span></label></div>
+      </div>
+      <div class="fs" id="st-trade-box">
+        <h3>Trade &amp; licence</h3>
+        <div class="tools"><div class="row"><div><div class="t" id="st-trade-now"></div><div class="d">Changing your trade may need a different licence.</div></div>
+          <button class="smallbtn" id="btn-chtrade" type="button">Change ›</button></div></div>
       </div>
       <div class="fs">
         <h3>Blocked users</h3>
@@ -543,7 +552,7 @@ async function signOut(){ await sb.auth.signOut(); }
 function showLanding(){
   $('app').classList.add('hidden'); $('landing').classList.remove('hidden');
   $('hdr-btn').classList.remove('hidden'); $('hdr-btn').textContent = 'Sign in';
-  $('hdr-gear').classList.add('hidden'); closeSettings();
+  closeSettings();
   setNav(false); $('chat').classList.add('hidden'); clearInterval(_chatPoll); currentTab = null; convs = []; proRows = []; _prosAt = 0;
 }
 
@@ -573,7 +582,7 @@ const tradeLabel = k => { const t = TRADES.find(x => x.key === k); return t ? t.
 /* ---------- start ---------- */
 async function startApp(){
   $('landing').classList.add('hidden'); $('app').classList.remove('hidden');
-  $('hdr-btn').classList.add('hidden'); $('hdr-gear').classList.add('hidden');
+  $('hdr-btn').classList.add('hidden');
   setNav(false); show('loading');
   try {
     const { data: susp } = await sb.rpc('am_i_suspended');
@@ -589,9 +598,9 @@ async function startApp(){
   myProfile = pr.data || { id: me.id };
   myPro = pp.data || null;
   myCred = pc.data || null;
-  $('hdr-gear').classList.remove('hidden');   // settings whenever signed in (incl. sign-up)
   if (myPro) { setNav(true); goTab(currentTab || 'map'); loadConvs(); }
   else { setNav(false); openSetup(false); }
+  $('hdr-btn').classList.toggle('hidden', !!myPro); $('hdr-btn').textContent = 'Sign out';
 }
 
 /* ---------- setup form ---------- */
@@ -610,14 +619,24 @@ function setLoc(l){
   else { $('loc-ok').classList.add('hidden'); }
 }
 
-function openSetup(isEdit){
+function openSetup(mode){
+  const tradeMode = mode === 'trade', isEdit = !!mode;   // false = sign-up, true = Profile, 'trade' = Settings → Trade & licence
   editing = isEdit;
   $('setup-title').textContent = isEdit ? 'Edit your Pro profile' : 'Set up your Pro profile';
   $('setup-lead').textContent = isEdit ? 'Changes show on the map right away.' : 'Takes about 2 minutes. Homeowners near you will see your pin on the Yoodle map.';
   $('btn-save').textContent = isEdit ? 'Save changes' : 'Save and go live';
-  $('btn-cancel-edit').classList.add('hidden');
-  $('setup-title').classList.toggle('hidden', isEdit);
-  $('setup-lead').classList.toggle('hidden', isEdit);
+  $('btn-cancel-edit').classList.toggle('hidden', !tradeMode);
+  $('setup-title').classList.toggle('hidden', isEdit && !tradeMode);
+  $('setup-lead').classList.toggle('hidden', isEdit && !tradeMode);
+  if (tradeMode) {
+    $('setup-title').textContent = 'Change trade & licence';
+    $('setup-lead').textContent = 'Changing your trade may need a different licence. If you change your licence number, we check it again before showing the Verified badge.';
+  }
+  // after set-up the trade is fixed on the Profile — it changes only via Settings → Trade & licence
+  $('fs-trade').classList.toggle('hidden', isEdit && !tradeMode);
+  $('fs-lic').classList.toggle('hidden', isEdit && !tradeMode);
+  $('fs-you').classList.toggle('hidden', tradeMode);
+  $('fs-where').classList.toggle('hidden', tradeMode);
   sel = new Set(myPro ? myPro.trades : []);
   renderTradeGrid();
   const nm = myProfile.name || '';
@@ -643,7 +662,8 @@ function openSetup(isEdit){
             : { address: myProfile.helper_address, lat: myProfile.helper_lat, lng: myProfile.helper_lng };
   if (src.lat != null && src.address && /^\d/.test(String(src.address).trim())) setLoc(src);   // needs a street number (Pro Terms)
   else { setLoc(null); $('f-loc').value = src.address || ''; }
-  if (isEdit) { renderProfileHead(); show('pf-head','v-setup'); }
+  if (tradeMode) show('v-setup');
+  else if (isEdit) { renderProfileHead(); show('pf-head','v-setup'); }
   else show('v-setup');
 }
 
@@ -727,8 +747,9 @@ $('btn-save').onclick = async () => {
   const fail = (t, el) => { setMsg('msg-save', t, 'err'); if (el) el.scrollIntoView({block:'center'}); };
   if (!sel.size) return fail('Pick at least one trade.', $('trade-grid'));
   if (name.length < 2) return fail('Please add your name.', $('f-name'));
+  if ($('f-biz').value.trim().length < 2) return fail('Please add your business name.', $('f-biz'));
   if (gpsPending) return fail('Please confirm your GPS address first.', $('loc-confirm'));
-  if (!loc) return fail('Please pick your street or neighbourhood from the suggestions.', $('f-loc'));
+  if (!loc) return fail($('fs-where').classList.contains('hidden') ? 'Please update your full business address in Profile first.' : 'Please pick your street or neighbourhood from the suggestions.', $('f-loc'));
   // licence is optional (Roman, 10 Oct) — but if they start it, the number is needed
   if (($('f-lbody').value || $('f-ltype').value.trim()) && !$('f-lnum').value.trim())
     return fail('Add your licence number, or leave the licence section empty.', $('f-lnum'));
@@ -1030,6 +1051,7 @@ function renderProfileHead(){
   $('st-avatar').textContent = nm.trim().charAt(0).toUpperCase() || '?';
   $('st-name').textContent = nm;
   $('st-biz').textContent = p.business_name || '';
+  $('st-trades').textContent = (p.trades || []).map(tradeLabel).join(' · ');
   const verified = !!p.licence_verified_at, hasLic = !!(myCred && myCred.licence_number);
   $('st-pill').innerHTML = p.status === 'suspended' ? '<span class="pill sus">Pro listing suspended</span>'
     : verified ? '<span class="pill ver">✓ Verified licence</span>' : hasLic ? '<span class="pill pend">Licence check pending</span>' : '<span class="pill none">No licence added</span>';
@@ -1065,13 +1087,17 @@ $('btn-pause').onclick = async () => {
 function openSettings(){
   if (!me) return;
   $('delpro-wrap').classList.toggle('hidden', !myPro);
+  $('st-trade-box').classList.toggle('hidden', !myPro);
+  if (myPro) $('st-trade-now').textContent = (myPro.trades || []).map(tradeLabel).join(' · ');
   $('blocked-list').textContent = 'Loading…';
   $('settings').classList.remove('hidden'); $('settings').querySelector('.st-body').scrollTop = 0;
   loadTools();
 }
 function closeSettings(){ $('settings').classList.add('hidden'); }
-$('hdr-gear').onclick = openSettings;
+$('pf-gear').onclick = openSettings;
 $('st-back').onclick = closeSettings;
+$('btn-chtrade').onclick = () => { closeSettings(); openSetup('trade'); };
+$('btn-cancel-edit').onclick = () => goTab('profile');
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('settings').classList.contains('hidden') && !$('del-sheet').classList.contains('open')) closeSettings(); });
 
 /* ---------- account tools (same as yoodle.ca Settings) ---------- */
