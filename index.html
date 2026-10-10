@@ -173,6 +173,15 @@
   .linklist a{display:block;padding:10px 0;border-top:1px solid var(--border);text-decoration:none;font-weight:700;color:var(--ink)}
   .linklist a:first-child{border-top:0}
   .btn-danger{background:#fff;color:var(--err);border:1.5px solid #F2C4BF}
+  /* settings (gear in header, like yoodle.ca) */
+  .hdr-r{display:flex;align-items:center;gap:4px}
+  .gearbtn{background:none;border:0;color:#fff;cursor:pointer;padding:6px;display:flex;opacity:.9}
+  .gearbtn svg{width:24px;height:24px}
+  #settings{position:fixed;inset:0;background:var(--bg);z-index:45;display:flex;flex-direction:column}
+  #settings .st-top{background:#000;color:#fff;padding:10px 12px;display:flex;align-items:center;gap:10px}
+  #settings .st-top button{background:none;border:0;color:#fff;font-size:26px;line-height:1;cursor:pointer;padding:4px 8px}
+  #settings .st-top b{font-size:18px}
+  #settings .st-body{flex:1;overflow-y:auto;padding:16px 16px calc(24px + env(safe-area-inset-bottom));max-width:560px;width:100%;margin:0 auto}
   /* ===== map tab (10 Oct 2026) ===== */
   #v-map{position:fixed;left:0;right:0;top:var(--hdr-h,54px);bottom:calc(64px + env(safe-area-inset-bottom));padding:0;z-index:1}
   #pmap{position:absolute;inset:0;background:#E9EEF1}
@@ -203,7 +212,10 @@
       <span class="wm"><span>y</span><span>o</span><span>o</span><span>d</span><span>l</span><span>e</span></span>
       <span class="pro-tag">Pros</span>
     </a>
-    <button class="linkbtn" id="hdr-btn" type="button">Sign in</button>
+    <div class="hdr-r">
+      <button class="linkbtn" id="hdr-btn" type="button">Sign in</button>
+      <button class="gearbtn hidden" id="hdr-gear" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+    </div>
   </div>
 </header>
 
@@ -275,6 +287,10 @@
           <input class="in" id="f-name" maxlength="60" autocomplete="name" placeholder="First and last name"></div>
         <div class="field"><label class="f" for="f-biz">Business name <span class="muted">(optional)</span></label>
           <input class="in" id="f-biz" maxlength="80" autocomplete="organization" placeholder="e.g. Smith Plumbing"></div>
+        <div class="field"><label class="f" for="f-phone">Mobile phone <span class="muted">(optional)</span></label>
+          <input class="in" id="f-phone" type="tel" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="e.g. 416 555 0123">
+          <label class="chk" style="margin-top:10px"><input type="checkbox" id="f-sms"><span>Text me when a homeowner sends a job inquiry <span class="muted">(coming soon)</span></span></label>
+          <p class="hint" style="margin:6px 0 0">Private — never shown on your profile. Used only for job-inquiry alerts you turn on.</p></div>
         <div class="field" style="margin-bottom:0"><label class="f" for="f-bio">About your work <span class="muted">(optional)</span></label>
           <textarea class="in" id="f-bio" maxlength="500" placeholder="Years in the trade, what you do, areas you cover…"></textarea></div>
       </div>
@@ -361,34 +377,6 @@
       <div id="msg-list"></div>
     </div>
 
-    <!-- PROFILE: account tools (below the shared form) -->
-    <div id="pf-tools" class="page hidden" style="padding-top:6px">
-      <div class="fs tools">
-        <h3>Notifications</h3>
-        <div class="row"><div><div class="t">Email me about unread messages</div><div class="d">One email when a message has waited 30 minutes unread.</div></div>
-          <label class="sw"><input type="checkbox" id="t-email"><span></span></label></div>
-      </div>
-      <div class="fs">
-        <h3>Blocked users</h3>
-        <div id="blocked-list" class="muted">Loading…</div>
-      </div>
-      <div class="fs">
-        <h3>Help &amp; Support</h3>
-        <div class="linklist">
-          <a href="mailto:support@yoodle.ca">Contact us · support@yoodle.ca</a>
-          <a href="https://yoodle.ca/faq.html" target="_blank" rel="noopener">FAQ ›</a>
-          <a href="https://yoodle.ca/terms" target="_blank" rel="noopener">Terms of Use ›</a>
-          <a href="/terms.html" target="_blank" rel="noopener">Yoodle Pro Terms ›</a>
-          <a href="https://yoodle.ca/privacy" target="_blank" rel="noopener">Privacy Policy ›</a>
-        </div>
-        <p class="hint" style="margin:10px 0 0">To report someone, open your chat with them on yoodle.ca and tap Report. We review reports within 24 hours.</p>
-      </div>
-      <button class="btn btn-ghost" id="btn-signout" type="button">Sign out</button>
-      <div class="gap"></div>
-      <button class="btn btn-danger" id="btn-delpro" type="button">Delete my Pro profile</button>
-      <p class="hint" style="margin:6px 2px 12px;color:var(--muted);font-size:13px">Removes only your Pro listing and licence details. Your Yoodle account, helper listing and messages stay.</p>
-      <button class="btn btn-danger" id="btn-delete" type="button">Delete my account</button>
-    </div>
   </div>
 </main>
 <div id="toast"></div>
@@ -412,6 +400,39 @@
     <button class="ch-send" id="ch-send" type="button">Send</button>
   </div>
   <div class="ch-ro hidden" id="ch-ro">This job is completed — the chat is read-only.</div>
+</div>
+
+
+<!-- SETTINGS (gear in header) -->
+<div id="settings" class="hidden" role="dialog" aria-modal="true" aria-label="Settings">
+  <div class="st-top"><button id="st-back" type="button" aria-label="Back">‹</button><b>Settings</b></div>
+  <div class="st-body">
+      <div class="fs tools">
+        <h3>Notifications</h3>
+        <div class="row"><div><div class="t">Email me about unread messages</div><div class="d">One email when a message has waited 30 minutes unread.</div></div>
+          <label class="sw"><input type="checkbox" id="t-email"><span></span></label></div>
+      </div>
+      <div class="fs">
+        <h3>Blocked users</h3>
+        <div id="blocked-list" class="muted">Loading…</div>
+      </div>
+      <div class="fs">
+        <h3>Help &amp; Support</h3>
+        <div class="linklist">
+          <a href="mailto:support@yoodle.ca">Contact us · support@yoodle.ca</a>
+          <a href="https://yoodle.ca/faq.html" target="_blank" rel="noopener">FAQ ›</a>
+          <a href="https://yoodle.ca/terms" target="_blank" rel="noopener">Terms of Use ›</a>
+          <a href="/terms.html" target="_blank" rel="noopener">Yoodle Pro Terms ›</a>
+          <a href="https://yoodle.ca/privacy" target="_blank" rel="noopener">Privacy Policy ›</a>
+        </div>
+        <p class="hint" style="margin:10px 0 0">To report someone, open your chat with them on yoodle.ca and tap Report. We review reports within 24 hours.</p>
+      </div>
+      <button class="btn btn-ghost" id="btn-signout" type="button">Sign out</button>
+      <div class="gap"></div>
+      <div id="delpro-wrap"><button class="btn btn-danger" id="btn-delpro" type="button">Delete my Pro profile</button>
+      <p class="hint" style="margin:6px 2px 12px;color:var(--muted);font-size:13px">Removes only your Pro listing and licence details. Your Yoodle account, helper listing and messages stay.</p></div>
+      <button class="btn btn-danger" id="btn-delete" type="button">Delete my account</button>
+  </div>
 </div>
 
 <div class="scrim" id="del-sheet" role="dialog" aria-modal="true">
@@ -522,6 +543,7 @@ async function signOut(){ await sb.auth.signOut(); }
 function showLanding(){
   $('app').classList.add('hidden'); $('landing').classList.remove('hidden');
   $('hdr-btn').classList.remove('hidden'); $('hdr-btn').textContent = 'Sign in';
+  $('hdr-gear').classList.add('hidden'); closeSettings();
   setNav(false); $('chat').classList.add('hidden'); clearInterval(_chatPoll); currentTab = null; convs = []; proRows = []; _prosAt = 0;
 }
 
@@ -536,17 +558,22 @@ let gpsPending = null;
 let editing = false;
 
 function toast(t){ const el=$('toast'); el.textContent=t; el.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(()=>el.style.display='none',3200); }
-const VIEWS = ['loading','v-suspended','v-setup','v-map','v-activity','v-messages','pf-head','pf-tools'];
+const VIEWS = ['loading','v-suspended','v-setup','v-map','v-activity','v-messages','pf-head'];
 function show(...views){ VIEWS.forEach(v => $(v).classList.toggle('hidden', !views.includes(v))); window.scrollTo(0,0); }
 function setNav(on){ $('bnav').classList.toggle('hidden', !on); document.body.classList.toggle('has-nav', on); }
 function esc(t){ return String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+// phone: '' = none, false = invalid, else +1XXXXXXXXXX (same rule as set_my_pro_contact)
+function normPhone(v){ let d = String(v || '').replace(/\D/g, ''); if (!d) return '';
+  if (d.length === 11 && d[0] === '1') d = d.slice(1);
+  return /^[2-9]\d{9}$/.test(d) ? '+1' + d : false; }
+function fmtPhone(p){ const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(p || ''); return m ? `${m[1]} ${m[2]} ${m[3]}` : ''; }
 const exact6 = n => Math.round(n * 1e6) / 1e6;   // business address is public and exact (Pro Terms, 10 Oct 2026)
 const tradeLabel = k => { const t = TRADES.find(x => x.key === k); return t ? t.emoji + ' ' + t.label : k; };
 
 /* ---------- start ---------- */
 async function startApp(){
   $('landing').classList.add('hidden'); $('app').classList.remove('hidden');
-  $('hdr-btn').classList.add('hidden');
+  $('hdr-btn').classList.add('hidden'); $('hdr-gear').classList.add('hidden');
   setNav(false); show('loading');
   try {
     const { data: susp } = await sb.rpc('am_i_suspended');
@@ -562,6 +589,7 @@ async function startApp(){
   myProfile = pr.data || { id: me.id };
   myPro = pp.data || null;
   myCred = pc.data || null;
+  $('hdr-gear').classList.remove('hidden');   // settings whenever signed in (incl. sign-up)
   if (myPro) { setNav(true); goTab(currentTab || 'map'); loadConvs(); }
   else { setNav(false); openSetup(false); }
 }
@@ -603,6 +631,8 @@ function openSetup(isEdit){
   $('f-lnum').value = myCred?.licence_number || '';
   $('f-ins').value = myCred?.insurer || '';
   $('f-insexp').value = myCred?.insurance_expires || '';
+  $('f-phone').value = fmtPhone(myCred?.phone);
+  $('f-sms').checked = !!myCred?.sms_opt_in;
   $('terms-box').classList.toggle('hidden', !!myProfile.terms_accepted_at);
   $('f-terms').checked = false;
   $('pro-terms-box').classList.toggle('hidden', !!(myPro && myPro.pro_terms_version === PRO_TERMS_VERSION));
@@ -613,7 +643,7 @@ function openSetup(isEdit){
             : { address: myProfile.helper_address, lat: myProfile.helper_lat, lng: myProfile.helper_lng };
   if (src.lat != null && src.address && /^\d/.test(String(src.address).trim())) setLoc(src);   // needs a street number (Pro Terms)
   else { setLoc(null); $('f-loc').value = src.address || ''; }
-  if (isEdit) { renderProfileHead(); show('pf-head','v-setup','pf-tools'); loadTools(); }
+  if (isEdit) { renderProfileHead(); show('pf-head','v-setup'); }
   else show('v-setup');
 }
 
@@ -704,6 +734,9 @@ $('btn-save').onclick = async () => {
     return fail('Add your licence number, or leave the licence section empty.', $('f-lnum'));
   const needProTerms = !(myPro && myPro.pro_terms_version === PRO_TERMS_VERSION);
   if (needProTerms && !$('f-proterms').checked) return fail('Please agree to the Yoodle Pro Terms.', $('pro-terms-box'));
+  const phone = normPhone($('f-phone').value);
+  if (phone === false) return fail('Please enter a 10-digit Canadian phone number, or leave it empty.', $('f-phone'));
+  if ($('f-sms').checked && !phone) return fail('Add your mobile number to get text alerts, or untick the box.', $('f-phone'));
   const needTerms = !myProfile.terms_accepted_at;
   if (needTerms && !$('f-terms').checked) return fail('Please agree to the Terms of Use.', $('terms-box'));
 
@@ -718,6 +751,12 @@ $('btn-save').onclick = async () => {
     p_terms_version: PRO_TERMS_VERSION
   });
   if (e1) { b.disabled = false; return fail(/suspended/i.test(e1.message) ? 'Your account is suspended.' : /words/i.test(e1.message) ? 'Your profile contains words that aren’t allowed on Yoodle.' : 'Couldn’t save your Pro details. Please try again.'); }
+
+  // phone is private (pro_credentials, owner + admin only) — pros_v4_phone
+  if (phone !== (myCred?.phone || '') || $('f-sms').checked !== !!myCred?.sms_opt_in) {
+    const { error: e3 } = await sb.rpc('set_my_pro_contact', { p_phone: phone, p_sms_opt_in: $('f-sms').checked && !!phone });
+    if (e3) { b.disabled = false; return fail(/10-digit/i.test(e3.message) ? 'Please enter a 10-digit Canadian phone number, or leave it empty.' : 'Couldn’t save your phone number. Please try again.', $('f-phone')); }
+  }
 
   const upd = { name };   // helper listing fields are never touched by the pro app
 
@@ -1018,6 +1057,19 @@ $('btn-pause').onclick = async () => {
   _prosAt = 0; renderProfileHead(); toast(resume ? 'Your Pro listing is live again ✓' : 'Pro listing paused');
 };
 
+/* ---------- settings (gear in header, same items as yoodle.ca Settings) ---------- */
+function openSettings(){
+  if (!me) return;
+  $('delpro-wrap').classList.toggle('hidden', !myPro);
+  $('blocked-list').textContent = 'Loading…';
+  $('settings').classList.remove('hidden'); $('settings').querySelector('.st-body').scrollTop = 0;
+  loadTools();
+}
+function closeSettings(){ $('settings').classList.add('hidden'); }
+$('hdr-gear').onclick = openSettings;
+$('st-back').onclick = closeSettings;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('settings').classList.contains('hidden') && !$('del-sheet').classList.contains('open')) closeSettings(); });
+
 /* ---------- account tools (same as yoodle.ca Settings) ---------- */
 async function loadTools(){
   $('t-email').checked = !myProfile.email_opt_out;
@@ -1039,7 +1091,7 @@ $('t-email').onchange = async e => {
   if (error) { e.target.checked = !e.target.checked; return toast('Couldn’t save. Please try again.'); }
   myProfile.email_opt_out = optOut; toast(optOut ? 'Email alerts off' : 'Email alerts on');
 };
-$('btn-signout').onclick = () => signOut();
+$('btn-signout').onclick = () => { closeSettings(); signOut(); };
 let delMode = 'account';
 function openDel(mode){
   delMode = mode;
@@ -1060,7 +1112,7 @@ $('del-go').onclick = async () => {
     const { error } = await sb.rpc('delete_my_pro_profile');
     b.disabled = false;
     if (error) return setMsg('msg-del', 'Couldn\u2019t delete your Pro profile. Please try again.', 'err');
-    $('del-sheet').classList.remove('open');
+    $('del-sheet').classList.remove('open'); closeSettings();
     myPro = null; myCred = null; proRows = []; _prosAt = 0; currentTab = null;
     setNav(false); openSetup(false);
     toast('Your Pro profile was deleted. Your Yoodle account is unchanged.');
