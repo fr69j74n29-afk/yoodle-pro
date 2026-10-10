@@ -267,6 +267,7 @@
         </div>
         <p class="muted" id="st-note" style="margin:14px 0 0"></p>
         <button class="btn btn-ghost hidden" id="btn-addlic" type="button" style="margin-top:12px">Add licence &amp; insurance ›</button>
+        <button class="btn btn-ghost hidden" id="btn-addlinks" type="button" style="margin-top:10px">Add website &amp; business email ›</button>
         <ul class="kv">
           <li><span>Listing</span><span id="st-exp"></span></li>
         </ul>
@@ -1091,6 +1092,7 @@ function renderProfileHead(){
     : hasLic ? 'You’re on the map. We’ll check your licence and add the Verified badge — usually within a few days.'
     : 'You’re on the map. Add your licence and insurance in Settings to get the Verified badge — a licence may be required to activate your Pro profile later.';
   $('btn-addlic').classList.toggle('hidden', p.status === 'suspended' || hasLic);
+  $('btn-addlinks').classList.toggle('hidden', p.status === 'suspended' || !!(myCred && (myCred.website || myCred.business_email)));
   $('st-exp').textContent = paused ? 'Paused' : expired ? 'Expired — tap Save changes to renew'
     : 'Live until ' + new Date(p.expires_at).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' });
   $('btn-pause').textContent = paused ? 'Resume my listing' : 'Pause my listing';
@@ -1127,6 +1129,8 @@ $('pf-gear').onclick = openSettings;
 $('st-back').onclick = closeSettings;
 $('btn-chtrade').onclick = () => { closeSettings(); openSetup('trade'); };
 $('btn-addlic').onclick = () => { openSetup('trade'); window.scrollTo(0, 0); };
+// website + business email live on the Profile form below the card (pros_v5_links)
+$('btn-addlinks').onclick = () => { const f = $('f-web'); f.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => f.focus({ preventScroll: true }), 350); };
 $('btn-cancel-edit').onclick = () => goTab('profile');
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('settings').classList.contains('hidden') && !$('del-sheet').classList.contains('open')) closeSettings(); });
 
