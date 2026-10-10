@@ -53,8 +53,8 @@
   .sheet h2{margin:0 0 6px;font-size:22px}
   .sheet .sub{color:var(--ink2);margin:0 0 18px;font-size:15px}
   label.f{display:block;font-weight:700;font-size:14px;margin:0 0 6px}
-  input.in{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:12px;font:inherit;font-size:17px;background:#fff;color:var(--ink)}
-  input.in:focus{outline:none;border-color:var(--accent)}
+  .in{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:12px;font:inherit;font-size:17px;background:#fff;color:var(--ink)}
+  .in:focus{outline:none;border-color:var(--accent)}
   .code{letter-spacing:8px;text-align:center;font-weight:800;font-size:24px}
   .gap{height:12px}
   .or{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:13px;margin:16px 0}
@@ -68,6 +68,48 @@
   .card h2{margin:0 0 6px}
   .muted{color:var(--ink2)}
   .hidden{display:none!important}
+
+  /* ===== step 2: setup + status ===== */
+  .page{padding:20px 0 48px}
+  .page h1{font-size:24px;margin:0 0 4px}
+  .page .lead{color:var(--ink2);margin:0 0 18px}
+  .fs{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:0 0 14px}
+  .fs h3{margin:0 0 4px;font-size:17px}
+  .fs .hint{color:var(--muted);font-size:13.5px;margin:0 0 12px}
+  .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tbtn{border:1.5px solid var(--border);background:#fff;border-radius:12px;padding:12px 6px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;color:var(--ink);text-align:center}
+  .tbtn .e{display:block;font-size:22px;margin-bottom:4px}
+  .tbtn.on{border-color:var(--accent);background:#FFF3EA;color:var(--accent-d)}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .field{margin-bottom:12px}
+  select.in{appearance:auto}
+  textarea.in{min-height:84px;resize:vertical;font-size:16px;font-family:inherit}
+  input[type=date].in{min-height:52px}
+  .locrow{display:flex;gap:8px}
+  .locrow .in{flex:1}
+  .gpsbtn{flex:0 0 auto;border:1.5px solid var(--border);background:#fff;border-radius:12px;padding:0 14px;font:inherit;font-weight:800;cursor:pointer;color:var(--ink)}
+  .sugg{border:1px solid var(--border);border-radius:12px;margin-top:6px;overflow:hidden;background:#fff}
+  .sugg button{display:block;width:100%;text-align:left;border:0;border-top:1px solid var(--border);background:#fff;padding:11px 12px;font:inherit;font-size:15px;cursor:pointer;color:var(--ink)}
+  .sugg button:first-child{border-top:0}
+  .sugg button:hover{background:#F5F7F9}
+  .confirm{background:#FFF8EC;border:1px solid #F3D9A8;border-radius:12px;padding:12px;margin-top:8px;font-size:15px}
+  .confirm .acts{display:flex;gap:8px;margin-top:10px}
+  .confirm .acts button{flex:1;padding:10px;border-radius:10px;font:inherit;font-weight:800;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--ink)}
+  .confirm .acts button.y{background:var(--accent);border-color:var(--accent);color:#fff}
+  .locok{color:var(--ok);font-size:14px;font-weight:700;margin-top:6px}
+  .chk{display:flex;gap:10px;align-items:flex-start;font-size:14.5px;color:var(--ink2)}
+  .chk input{width:20px;height:20px;margin-top:2px;flex:0 0 auto}
+  .pill{display:inline-block;border-radius:999px;padding:4px 10px;font-weight:800;font-size:13px}
+  .pill.pend{background:#FFF3D6;color:#8A5A00}
+  .pill.ver{background:#E3F5EC;color:var(--ok)}
+  .pill.sus{background:#FDE7E5;color:var(--err)}
+  .pcard{display:flex;gap:14px;align-items:center}
+  .avatar{width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;display:grid;place-items:center;font-weight:800;font-size:22px;flex:0 0 auto}
+  .kv{margin:12px 0 0;padding:0;list-style:none}
+  .kv li{padding:8px 0;border-top:1px solid var(--border);display:flex;justify-content:space-between;gap:12px;font-size:15px}
+  .kv li span:first-child{color:var(--muted)}
+  .kv li span:last-child{text-align:right;font-weight:700}
+  #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;font-size:15px;z-index:80;display:none;max-width:calc(100% - 32px)}
 </style>
 </head>
 <body>
@@ -106,15 +148,119 @@
   <footer>Yoodle Pros is part of <a href="https://yoodle.ca">yoodle.ca</a> · <a href="mailto:support@yoodle.ca">support@yoodle.ca</a></footer>
 </main>
 
-<!-- ===== Signed-in shell (step 1 placeholder) ===== -->
+<!-- ===== Signed-in app ===== -->
 <main id="app" class="hidden">
   <div class="wrap">
-    <div class="card">
-      <h2>Welcome<span id="who"></span></h2>
-      <p class="muted">You're signed in to Yoodle Pros with your Yoodle account. Pro setup comes next.</p>
+    <div id="loading" class="page"><p class="muted">Loading…</p></div>
+
+    <!-- suspended -->
+    <div id="v-suspended" class="page hidden">
+      <div class="card"><h2>Account suspended</h2>
+        <p class="muted">This account can't use Yoodle right now. If you think this is a mistake, email <a href="mailto:support@yoodle.ca">support@yoodle.ca</a>.</p></div>
+    </div>
+
+    <!-- pro setup / edit -->
+    <div id="v-setup" class="page hidden">
+      <h1 id="setup-title">Set up your Pro profile</h1>
+      <p class="lead" id="setup-lead">Takes about 2 minutes. Homeowners near you will see your pin on the Yoodle map.</p>
+
+      <div class="fs">
+        <h3>Your trade</h3>
+        <p class="hint">Pick all that apply.</p>
+        <div class="tgrid" id="trade-grid"></div>
+      </div>
+
+      <div class="fs">
+        <h3>You and your business</h3>
+        <div class="field"><label class="f" for="f-name">Your name</label>
+          <input class="in" id="f-name" maxlength="60" autocomplete="name" placeholder="First and last name"></div>
+        <div class="field"><label class="f" for="f-biz">Business name <span class="muted">(optional)</span></label>
+          <input class="in" id="f-biz" maxlength="80" autocomplete="organization" placeholder="e.g. Smith Plumbing"></div>
+        <div class="field" style="margin-bottom:0"><label class="f" for="f-bio">About your work <span class="muted">(optional)</span></label>
+          <textarea class="in" id="f-bio" maxlength="500" placeholder="Years in the trade, what you do, areas you cover…"></textarea></div>
+      </div>
+
+      <div class="fs">
+        <h3>Where you work</h3>
+        <p class="hint">Your street or neighbourhood. Your exact address is never shown — the pin sits about 100 m away.</p>
+        <div class="field">
+          <div class="locrow">
+            <input class="in" id="f-loc" autocomplete="off" placeholder="Street name, city">
+            <button class="gpsbtn" id="btn-gps" type="button" aria-label="Use my location">📍 GPS</button>
+          </div>
+          <div class="sugg hidden" id="loc-sugg"></div>
+          <div class="confirm hidden" id="loc-confirm">Is this your street?<br><b id="loc-confirm-txt"></b>
+            <div class="acts"><button class="y" id="loc-yes" type="button">Yes, that's right</button><button id="loc-no" type="button">No, I'll type it</button></div></div>
+          <div class="locok hidden" id="loc-ok"></div>
+          <div class="msg" id="msg-loc"></div>
+        </div>
+        <div class="field" style="margin-bottom:0"><label class="f" for="f-radius">How far will you travel?</label>
+          <select class="in" id="f-radius">
+            <option value="10">Up to 10 km</option><option value="25" selected>Up to 25 km</option>
+            <option value="50">Up to 50 km</option><option value="100">Up to 100 km</option>
+          </select></div>
+      </div>
+
+      <div class="fs">
+        <h3>Licence</h3>
+        <p class="hint">Needed for the Verified badge. Only you and the Yoodle team can see these details.</p>
+        <div class="field"><label class="f" for="f-lbody">Issued by</label>
+          <select class="in" id="f-lbody">
+            <option value="">Choose…</option>
+            <option>Skilled Trades Ontario</option>
+            <option>Electrical Safety Authority (ESA)</option>
+            <option>TSSA</option>
+            <option>Other</option>
+          </select></div>
+        <div class="row2">
+          <div class="field"><label class="f" for="f-ltype">Licence / certificate</label>
+            <input class="in" id="f-ltype" maxlength="60" placeholder="e.g. 306A, LEC, G2"></div>
+          <div class="field"><label class="f" for="f-lnum">Number</label>
+            <input class="in" id="f-lnum" maxlength="40" placeholder="Licence #"></div>
+        </div>
+        <h3 style="margin-top:6px">Insurance <span class="muted" style="font-weight:600;font-size:14px">(optional)</span></h3>
+        <div class="row2" style="margin-top:8px">
+          <div class="field" style="margin-bottom:0"><label class="f" for="f-ins">Insurer</label>
+            <input class="in" id="f-ins" maxlength="80" placeholder="Company"></div>
+          <div class="field" style="margin-bottom:0"><label class="f" for="f-insexp">Expires</label>
+            <input class="in" id="f-insexp" type="date"></div>
+        </div>
+      </div>
+
+      <div class="fs" id="terms-box">
+        <label class="chk"><input type="checkbox" id="f-terms"><span>I agree to Yoodle's <a href="https://yoodle.ca/terms" target="_blank" rel="noopener">Terms of Use</a> and <a href="https://yoodle.ca/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</span></label>
+      </div>
+
+      <button class="btn btn-primary" id="btn-save" type="button">Save and go live</button>
+      <div class="msg" id="msg-save"></div>
+      <div class="gap"></div>
+      <button class="btn btn-ghost hidden" id="btn-cancel-edit" type="button">Cancel</button>
+    </div>
+
+    <!-- status -->
+    <div id="v-status" class="page hidden">
+      <div class="card">
+        <div class="pcard">
+          <div class="avatar" id="st-avatar">?</div>
+          <div><h2 id="st-name" style="margin:0"></h2><div class="muted" id="st-biz"></div><div style="margin-top:6px" id="st-pill"></div></div>
+        </div>
+        <p class="muted" id="st-note" style="margin:14px 0 0"></p>
+        <ul class="kv">
+          <li><span>Trades</span><span id="st-trades"></span></li>
+          <li><span>Area</span><span id="st-area"></span></li>
+          <li><span>Travels</span><span id="st-radius"></span></li>
+          <li><span>Licence</span><span id="st-lic"></span></li>
+          <li><span>Insurance</span><span id="st-ins"></span></li>
+          <li><span>Listing</span><span id="st-exp"></span></li>
+        </ul>
+      </div>
+      <button class="btn btn-primary" id="btn-edit" type="button">Edit my Pro profile</button>
+      <div class="gap"></div>
+      <a class="btn btn-ghost" id="st-view" href="https://yoodle.ca" target="_blank" rel="noopener" style="text-decoration:none">See the Yoodle map</a>
     </div>
   </div>
 </main>
+<div id="toast"></div>
 
 <!-- ===== Sign-in sheet ===== -->
 <div class="scrim" id="auth" role="dialog" aria-modal="true" aria-labelledby="auth-title">
@@ -213,14 +359,224 @@ function showLanding(){
   $('hdr-btn').textContent = 'Sign in';
 }
 
+/* ---------- helpers ---------- */
+const PRO_DAYS = 90;   // same listing length as yoodle.ca helpers
+let TRADES = [];       // from pro_trades
+let myProfile = null, myPro = null, myCred = null;
+let sel = new Set();   // selected trade keys
+let loc = null;        // {address, lat, lng} accepted location
+let gpsPending = null;
+let editing = false;
+
+function toast(t){ const el=$('toast'); el.textContent=t; el.style.display='block'; clearTimeout(toast._t); toast._t=setTimeout(()=>el.style.display='none',3200); }
+function show(view){ ['loading','v-suspended','v-setup','v-status'].forEach(v => $(v).classList.toggle('hidden', v !== view)); window.scrollTo(0,0); }
+function esc(t){ return String(t ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const round3 = n => Math.round(n * 1000) / 1000;   // ~100 m, never the front door
+const tradeLabel = k => { const t = TRADES.find(x => x.key === k); return t ? t.emoji + ' ' + t.label : k; };
+
+/* ---------- start ---------- */
 async function startApp(){
   $('landing').classList.add('hidden'); $('app').classList.remove('hidden');
   $('hdr-btn').textContent = 'Sign out';
-  $('who').textContent = '';
-  const { data } = await sb.from('profiles').select('name').eq('id', me.id).maybeSingle();
-  if (data && data.name) $('who').textContent = ', ' + data.name.split(' ')[0];
-  // Step 2+: load pro_profiles row → setup form or status screen.
+  show('loading');
+  try {
+    const { data: susp } = await sb.rpc('am_i_suspended');
+    if (susp === true) { show('v-suspended'); return; }
+  } catch(_) {}
+  const [tr, pr, pp, pc] = await Promise.all([
+    sb.from('pro_trades').select('key,label,emoji,licence_required').order('sort_order'),
+    sb.from('profiles').select('id,name,helper_address,helper_lat,helper_lng,helper_bio,helper_expires_at,visible_on_map,terms_accepted_at').eq('id', me.id).maybeSingle(),
+    sb.from('pro_profiles').select('*').eq('profile_id', me.id).maybeSingle(),
+    sb.from('pro_credentials').select('*').eq('profile_id', me.id).maybeSingle()
+  ]);
+  TRADES = tr.data || [];
+  myProfile = pr.data || { id: me.id };
+  myPro = pp.data || null;
+  myCred = pc.data || null;
+  if (myPro) renderStatus(); else openSetup(false);
 }
+
+/* ---------- setup form ---------- */
+function renderTradeGrid(){
+  $('trade-grid').innerHTML = TRADES.map(t =>
+    `<button type="button" class="tbtn${sel.has(t.key)?' on':''}" data-k="${esc(t.key)}"><span class="e">${esc(t.emoji)}</span>${esc(t.label)}</button>`).join('');
+  $('trade-grid').querySelectorAll('.tbtn').forEach(b => b.onclick = () => {
+    const k = b.dataset.k; sel.has(k) ? sel.delete(k) : sel.add(k); renderTradeGrid();
+  });
+}
+
+function setLoc(l){
+  loc = l; gpsPending = null;
+  $('loc-confirm').classList.add('hidden'); $('loc-sugg').classList.add('hidden');
+  if (l) { $('f-loc').value = l.address; $('loc-ok').textContent = '✓ ' + l.address; $('loc-ok').classList.remove('hidden'); setMsg('msg-loc',''); }
+  else { $('loc-ok').classList.add('hidden'); }
+}
+
+function openSetup(isEdit){
+  editing = isEdit;
+  $('setup-title').textContent = isEdit ? 'Edit your Pro profile' : 'Set up your Pro profile';
+  $('setup-lead').textContent = isEdit ? 'Changes show on the map right away.' : 'Takes about 2 minutes. Homeowners near you will see your pin on the Yoodle map.';
+  $('btn-save').textContent = isEdit ? 'Save changes' : 'Save and go live';
+  $('btn-cancel-edit').classList.toggle('hidden', !isEdit);
+  sel = new Set(myPro ? myPro.trades : []);
+  renderTradeGrid();
+  const nm = myProfile.name || '';
+  $('f-name').value = nm.includes('@') ? '' : nm;   // email sign-ups get the email as a name
+  $('f-biz').value = myPro?.business_name || '';
+  $('f-bio').value = myProfile.helper_bio || '';
+  $('f-radius').value = String(myPro?.service_radius_km || 25);
+  if (![...$('f-radius').options].some(o => o.value === $('f-radius').value)) $('f-radius').value = '25';
+  $('f-lbody').value = myCred?.licence_body || '';
+  $('f-ltype').value = myCred?.licence_type || '';
+  $('f-lnum').value = myCred?.licence_number || '';
+  $('f-ins').value = myCred?.insurer || '';
+  $('f-insexp').value = myCred?.insurance_expires || '';
+  $('terms-box').classList.toggle('hidden', !!myProfile.terms_accepted_at);
+  $('f-terms').checked = false;
+  setMsg('msg-save','');
+  if (myProfile.helper_lat != null && myProfile.helper_address && !isVagueText(myProfile.helper_address))
+    setLoc({ address: myProfile.helper_address, lat: myProfile.helper_lat, lng: myProfile.helper_lng });
+  else { setLoc(null); $('f-loc').value = myProfile.helper_address || ''; }
+  show('v-setup');
+}
+
+/* ---------- location (Nominatim, street-level only) ---------- */
+const VAGUE_TYPES = ['city','town','village','municipality','county','state_district','state','province','region','country','administrative'];
+function isVagueItem(it){
+  if (it.addresstype) return VAGUE_TYPES.includes(it.addresstype);
+  const a = it.address || {};
+  return !(a.road || a.neighbourhood || a.suburb || a.quarter || a.hamlet || a.residential);
+}
+const isVagueText = t => String(t||'').split(',').filter(x => x.trim()).length <= 2;
+function fmtAddr(it){
+  const a = it.address || {};
+  const parts = [a.road, a.neighbourhood || a.suburb || a.quarter || a.residential,
+                 a.city || a.town || a.village || a.municipality, a.state || a.province];
+  const out = [];
+  parts.forEach(p => { if (p && !out.includes(p)) out.push(p); });   // never the house number
+  return out.join(', ');
+}
+
+let _locT = null, _locSeq = 0;
+$('f-loc').addEventListener('input', () => {
+  loc = null; gpsPending = null; $('loc-ok').classList.add('hidden'); $('loc-confirm').classList.add('hidden');
+  clearTimeout(_locT);
+  const q = $('f-loc').value.trim();
+  if (q.length < 4) { $('loc-sugg').classList.add('hidden'); return; }
+  _locT = setTimeout(() => searchLoc(q), 450);   // Nominatim: max ~1 request/second
+});
+
+async function searchLoc(q){
+  const seq = ++_locSeq;
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=ca&limit=6&q=' + encodeURIComponent(q), { headers: { 'Accept-Language': 'en' } });
+    const items = await r.json();
+    if (seq !== _locSeq) return;
+    const box = $('loc-sugg');
+    if (!items.length) { box.classList.add('hidden'); setMsg('msg-loc','No matches. Try your street name and city.', 'err'); return; }
+    setMsg('msg-loc','');
+    box.innerHTML = items.map((it,i) => `<button type="button" data-i="${i}">${esc(fmtAddr(it) || it.display_name)}</button>`).join('');
+    box.querySelectorAll('button').forEach(b => b.onclick = () => pickLoc(items[+b.dataset.i]));
+    box.classList.remove('hidden');
+  } catch(_) { setMsg('msg-loc','Address search is unavailable right now. Try again in a moment.', 'err'); }
+}
+
+function pickLoc(it){
+  $('loc-sugg').classList.add('hidden');
+  if (isVagueItem(it)) {
+    loc = null; $('f-loc').value = '';
+    $('f-loc').placeholder = 'Street name in ' + ((it.address||{}).city || (it.address||{}).town || it.name || 'your city');
+    setMsg('msg-loc','Please pick a street or neighbourhood, not just a city — it helps homeowners near you find you.', 'err');
+    $('f-loc').focus({preventScroll:true});
+    return;
+  }
+  setLoc({ address: fmtAddr(it) || it.display_name, lat: round3(+it.lat), lng: round3(+it.lon) });
+}
+
+$('btn-gps').onclick = () => {
+  if (!navigator.geolocation) { setMsg('msg-loc','Location isn’t available on this device. Please type your street.', 'err'); return; }
+  setMsg('msg-loc','Finding your street…');
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try {
+      const { latitude: la, longitude: lo } = pos.coords;
+      const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&addressdetails=1&zoom=17&lat=${la}&lon=${lo}`, { headers: { 'Accept-Language': 'en' } });
+      const it = await r.json();
+      if (!it || !it.address || isVagueItem(it)) { setMsg('msg-loc','Couldn’t find your street. Please type it.', 'err'); return; }
+      gpsPending = { address: fmtAddr(it), lat: round3(la), lng: round3(lo) };
+      $('loc-confirm-txt').textContent = gpsPending.address;
+      $('loc-confirm').classList.remove('hidden'); setMsg('msg-loc','');
+    } catch(_) { setMsg('msg-loc','Couldn’t look up your street. Please type it.', 'err'); }
+  }, () => setMsg('msg-loc','Location permission was denied. Please type your street.', 'err'),
+     { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+};
+$('loc-yes').onclick = () => setLoc(gpsPending);
+$('loc-no').onclick = () => { gpsPending = null; $('loc-confirm').classList.add('hidden'); $('f-loc').value=''; $('f-loc').focus({preventScroll:true}); };
+
+/* ---------- save ---------- */
+$('btn-save').onclick = async () => {
+  const name = $('f-name').value.trim();
+  const fail = (t, el) => { setMsg('msg-save', t, 'err'); if (el) el.scrollIntoView({block:'center'}); };
+  if (!sel.size) return fail('Pick at least one trade.', $('trade-grid'));
+  if (name.length < 2) return fail('Please add your name.', $('f-name'));
+  if (gpsPending) return fail('Please confirm your GPS address first.', $('loc-confirm'));
+  if (!loc) return fail('Please pick your street or neighbourhood from the suggestions.', $('f-loc'));
+  if (!$('f-lbody').value || !$('f-ltype').value.trim() || !$('f-lnum').value.trim())
+    return fail('Please add your licence details.', $('f-lbody'));
+  const needTerms = !myProfile.terms_accepted_at;
+  if (needTerms && !$('f-terms').checked) return fail('Please agree to the Terms of Use.', $('terms-box'));
+
+  const b = $('btn-save'); b.disabled = true; setMsg('msg-save','Saving…');
+  // 1) pro row first (validates trades) — then the helper fields that put the pin on the map
+  const { error: e1 } = await sb.rpc('upsert_my_pro_profile', {
+    p_trades: [...sel], p_business_name: $('f-biz').value.trim(), p_radius: +$('f-radius').value,
+    p_licence_type: $('f-ltype').value.trim(), p_licence_body: $('f-lbody').value,
+    p_licence_number: $('f-lnum').value.trim(), p_insurer: $('f-ins').value.trim() || null,
+    p_insurance_expires: $('f-insexp').value || null
+  });
+  if (e1) { b.disabled = false; return fail(/suspended/i.test(e1.message) ? 'Your account is suspended.' : 'Couldn’t save your Pro details. Please try again.'); }
+
+  const upd = {
+    name, helper_bio: $('f-bio').value.trim() || null,
+    helper_address: loc.address, helper_lat: loc.lat, helper_lng: loc.lng,
+    last_lat: loc.lat, last_lng: loc.lng,          // map pins use last_lat/lng (same as yoodle.ca helper save)
+    show_on_map: true, visible_on_map: true,
+    helper_expires_at: new Date(Date.now() + PRO_DAYS * 864e5).toISOString()
+  };
+  if (needTerms) upd.terms_accepted_at = new Date().toISOString();
+  const { error: e2 } = await sb.from('profiles').update(upd).eq('id', me.id);
+  b.disabled = false;
+  if (e2) return fail(/words/i.test(e2.message) ? 'Your profile contains words that aren’t allowed on Yoodle.' : 'Couldn’t save your profile. Please try again.');
+
+  const first = !myPro;
+  await startApp();   // reload everything → status screen
+  toast(first ? 'You’re live on the Yoodle map! 🎉' : 'Saved ✓');
+};
+$('btn-cancel-edit').onclick = () => renderStatus();
+
+/* ---------- status ---------- */
+function renderStatus(){
+  const p = myPro, pr = myProfile, c = myCred || {};
+  const nm = pr.name || 'Your profile';
+  $('st-avatar').textContent = nm.trim().charAt(0).toUpperCase() || '?';
+  $('st-name').textContent = nm;
+  $('st-biz').textContent = p.business_name || '';
+  const verified = !!p.licence_verified_at;
+  $('st-pill').innerHTML = p.status === 'suspended' ? '<span class="pill sus">Pro listing suspended</span>'
+    : verified ? '<span class="pill ver">✓ Verified licence</span>' : '<span class="pill pend">Licence check pending</span>';
+  const live = pr.visible_on_map && pr.helper_expires_at && new Date(pr.helper_expires_at) > new Date();
+  $('st-note').textContent = p.status === 'suspended' ? 'Your Pro listing is hidden. Contact support@yoodle.ca.'
+    : verified ? 'Homeowners see your Pro pin with the Verified badge.'
+    : 'You’re on the map now. We’ll check your licence and add the Verified badge — usually within a few days.';
+  $('st-trades').textContent = (p.trades || []).map(tradeLabel).join(', ');
+  $('st-area').textContent = pr.helper_address || '—';
+  $('st-radius').textContent = 'Up to ' + p.service_radius_km + ' km';
+  $('st-lic').textContent = c.licence_number ? `${c.licence_type || ''} ${verified ? '✓' : '(pending)'}`.trim() : 'Not added';
+  $('st-ins').textContent = c.insurer ? (c.insurer + (p.insurance_verified_at ? ' ✓' : '')) : 'Not added';
+  $('st-exp').textContent = live ? 'Live until ' + new Date(pr.helper_expires_at).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' })
+    : (pr.visible_on_map === false ? 'Paused' : 'Expired — tap Edit and Save to renew');
+  show('v-status');
+}
+$('btn-edit').onclick = () => openSetup(true);
 
 function _startApp(session){
   if (!session) { me = null; _appStartedFor = null; showLanding(); return; }
