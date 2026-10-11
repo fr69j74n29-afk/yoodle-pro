@@ -285,7 +285,7 @@
         <h3>Your trade</h3>
         <p class="hint">Pick all that apply.</p>
         <div class="tgrid" id="trade-grid"></div>
-        <p class="hint" id="lic-later" style="margin:10px 0 0">You can add your licence and insurance later in <b>Settings</b>. <b>A licence may be required to activate your Pro profile later.</b></p>
+        <p class="hint" id="lic-later" style="margin:10px 0 0">You can add your licence and insurance later in <b>Settings</b>.<span class="lic-req"> <b>A licence may be required to activate your Pro profile later.</b></span></p>
       </div>
 
       <div class="fs" id="fs-you">
@@ -332,7 +332,7 @@
 
       <div class="fs" id="fs-lic">
         <h3>Licence <span class="muted" style="font-weight:600;font-size:14px">(optional for now)</span></h3>
-        <p class="hint">Adding your licence gets you the <b>✓ Verified licence</b> badge. <b>A licence may be required to activate your Pro profile later.</b> Only you and the Yoodle team can see these details.</p>
+        <p class="hint">Adding your licence gets you the <b>✓ Verified licence</b> badge.<span class="lic-req"> <b>A licence may be required to activate your Pro profile later.</b></span> Only you and the Yoodle team can see these details.</p>
         <div class="field"><label class="f" for="f-lbody">Issued by</label>
           <select class="in" id="f-lbody">
             <option value="">Choose…</option>
@@ -591,6 +591,9 @@ function normEmail(v){ const e = String(v || '').trim().toLowerCase(); if (!e) r
   return (e.length <= 254 && /^[^@\s]+@[a-z0-9-]+(\.[a-z0-9-]+)+$/.test(e)) ? e : false; }
 function fmtPhone(p){ const m = /^\+1(\d{3})(\d{3})(\d{4})$/.exec(p || ''); return m ? `${m[1]} ${m[2]} ${m[3]}` : ''; }
 const exact6 = n => Math.round(n * 1e6) / 1e6;   // business address is public and exact (Pro Terms, 10 Oct 2026)
+// licence disclosure only for regulated trades (pro_trades.licence_required: plumber, hvac, electrician) — Roman, 11 Oct
+const needsLicence = keys => [...(keys || [])].some(k => TRADES.find(t => t.key === k)?.licence_required);
+function updateLicHints(){ const on = needsLicence(sel); document.querySelectorAll('.lic-req').forEach(e => e.classList.toggle('hidden', !on)); }
 const tradeLabel = k => { const t = TRADES.find(x => x.key === k); return t ? t.emoji + ' ' + t.label : k; };
 
 /* ---------- start ---------- */
@@ -624,6 +627,7 @@ function renderTradeGrid(){
   $('trade-grid').querySelectorAll('.tbtn').forEach(b => b.onclick = () => {
     const k = b.dataset.k; sel.has(k) ? sel.delete(k) : sel.add(k); renderTradeGrid();
   });
+  updateLicHints();
 }
 
 function setLoc(l){
@@ -1090,7 +1094,7 @@ function renderProfileHead(){
     : paused ? 'Your listing is paused — homeowners can’t see your pin.'
     : verified ? 'Homeowners see your Pro pin with the Verified badge.'
     : hasLic ? 'You’re on the map. We’ll check your licence and add the Verified badge — usually within a few days.'
-    : 'You’re on the map. Add your licence and insurance in Settings to get the Verified badge — a licence may be required to activate your Pro profile later.';
+    : 'You’re on the map. Add your licence and insurance in Settings to get the Verified badge' + (needsLicence(p.trades) ? ' — a licence may be required to activate your Pro profile later.' : '.');
   $('btn-addlic').classList.toggle('hidden', p.status === 'suspended' || hasLic);
   $('btn-addlinks').classList.toggle('hidden', p.status === 'suspended' || !!(myCred && (myCred.website || myCred.business_email)));
   $('st-exp').textContent = paused ? 'Paused' : expired ? 'Expired — tap Save changes to renew'
