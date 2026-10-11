@@ -283,7 +283,7 @@
 
       <div class="fs" id="fs-trade">
         <h3>Your trade</h3>
-        <p class="hint">Pick all that apply.</p>
+        <p class="hint">Pick your main trade.</p>
         <div class="tgrid" id="trade-grid"></div>
         <p class="hint" id="lic-later" style="margin:10px 0 0">You can add your licence and insurance later in <b>Settings</b>.<span class="lic-req"> <b>A licence may be required to activate your Pro profile later.</b></span></p>
       </div>
@@ -625,7 +625,7 @@ function renderTradeGrid(){
   $('trade-grid').innerHTML = TRADES.map(t =>
     `<button type="button" class="tbtn${sel.has(t.key)?' on':''}" data-k="${esc(t.key)}"><span class="e">${esc(t.emoji)}</span>${esc(t.label)}</button>`).join('');
   $('trade-grid').querySelectorAll('.tbtn').forEach(b => b.onclick = () => {
-    const k = b.dataset.k; sel.has(k) ? sel.delete(k) : sel.add(k); renderTradeGrid();
+    const k = b.dataset.k; sel = sel.has(k) ? new Set() : new Set([k]); renderTradeGrid();   // one trade per pro (Roman, 11 Oct)
   });
   updateLicHints();
 }
@@ -657,7 +657,7 @@ function openSetup(mode){
   $('fs-links').classList.toggle('hidden', !isEdit || tradeMode);   // website + business email: Profile only, not at sign-up
   $('fs-you').classList.toggle('hidden', tradeMode);
   $('fs-where').classList.toggle('hidden', tradeMode);
-  sel = new Set(myPro ? myPro.trades : []);
+  sel = new Set(myPro ? (myPro.trades || []).slice(0, 1) : []);   // one trade per pro
   renderTradeGrid();
   const nm = myProfile.name || '';
   $('f-name').value = nm.includes('@') ? '' : nm;   // email sign-ups get the email as a name
@@ -767,7 +767,7 @@ $('loc-no').onclick = () => { gpsPending = null; $('loc-confirm').classList.add(
 $('btn-save').onclick = async () => {
   const name = $('f-name').value.trim();
   const fail = (t, el) => { setMsg('msg-save', t, 'err'); if (el) el.scrollIntoView({block:'center'}); };
-  if (!sel.size) return fail('Pick at least one trade.', $('trade-grid'));
+  if (!sel.size) return fail('Pick your trade.', $('trade-grid'));
   if (name.length < 2) return fail('Please add your name.', $('f-name'));
   if ($('f-biz').value.trim().length < 2) return fail('Please add your business name.', $('f-biz'));
   if (gpsPending) return fail('Please confirm your GPS address first.', $('loc-confirm'));
