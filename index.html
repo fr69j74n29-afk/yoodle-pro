@@ -12,8 +12,8 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Yoodle Pros">
-<title>Yoodle Pros — local leads for licensed trades</title>
-<meta name="description" content="Free local leads for licensed plumbers, HVAC technicians and electricians. Show up on the Yoodle neighbourhood map.">
+<title>Yoodle Pros — local leads for home-service trades</title>
+<meta name="description" content="Free local leads for plumbers, HVAC technicians, electricians, roofers, locksmiths and appliance repair pros. Show up on the Yoodle neighbourhood map.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -226,9 +226,9 @@
   <div class="hero">
     <div class="wrap">
       <h1>Get local jobs from homeowners near you.</h1>
-      <p>Yoodle is the neighbourhood map where people find help. Licensed trades get their own pin, a verified badge, and messages straight from homeowners — free.</p>
+      <p>Yoodle is the neighbourhood map where people find help. Local trades get their own pin, a verified badge, and messages straight from homeowners — free.</p>
       <div class="trades" id="trade-chips">
-        <span class="chip">🚰 Plumber</span><span class="chip">❄️ HVAC</span><span class="chip">⚡ Electrician</span>
+        <span class="chip">🚰 Plumber</span><span class="chip">❄️ HVAC</span><span class="chip">⚡ Electrician</span><span class="chip">🏠 Roofer</span><span class="chip">🔑 Locksmith</span><span class="chip">🧺 Appliance repair</span>
       </div>
       <button class="btn btn-primary" id="cta-join" type="button">Join as a Pro — free</button>
     </div>
@@ -1199,6 +1199,13 @@ function _startApp(session){
 }
 
 sb.auth.getSession().then(({ data }) => _startApp(data.session));
+/* landing chips from pro_trades (static chips above stay as fallback) — 11 Oct 2026 */
+(async () => {
+  try {
+    const { data } = await sb.from('pro_trades').select('label,emoji').order('sort_order');
+    if (data && data.length) $('trade-chips').innerHTML = data.map(t => `<span class="chip">${esc(t.emoji)} ${esc(t.label)}</span>`).join('');
+  } catch(_) {}
+})();
 sb.auth.onAuthStateChange((_event, session) => _startApp(session));
 </script>
 </body>
