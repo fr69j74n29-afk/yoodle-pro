@@ -42,6 +42,9 @@
   .hero p{color:#C9D6DF;margin:0 0 22px;font-size:17px}
   .trades{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 24px}
   .chip{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:6px 12px;font-weight:700;font-size:14px}
+  .chip.big{background:rgba(234,106,18,.18);border-color:rgba(234,106,18,.6);font-size:15px;padding:8px 14px}
+  .chip.more{background:#fff;color:var(--ink);border-color:#fff;cursor:pointer;font:inherit;font-weight:800;font-size:14px}
+  .gl{font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:#9FB3C1;margin:0 0 8px}
   .btn{display:block;width:100%;border:0;border-radius:12px;padding:15px 18px;font:inherit;font-weight:800;font-size:17px;cursor:pointer;text-align:center}
   .btn-primary{background:var(--accent);color:#fff}
   .btn-primary:hover{background:var(--accent-d)}
@@ -84,7 +87,19 @@
   .fs{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:0 0 14px}
   .fs h3{margin:0 0 4px;font-size:17px}
   .fs .hint{color:var(--muted);font-size:13.5px;margin:0 0 12px}
-  .tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  .tgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  .tbtn .sub{display:block;font-size:11.5px;font-weight:700;color:var(--muted);margin-top:2px}
+  .tbtn.on .sub{color:var(--accent-d)}
+  .tother{margin-top:10px;border:1.5px solid var(--border);border-radius:12px;overflow:hidden}
+  .tsrch{width:100%;border:0;border-bottom:1px solid var(--border);padding:12px;font:inherit;font-size:16px;outline:none;background:#fff;color:var(--ink)}
+  .tlist{max-height:300px;overflow-y:auto}
+  .tgrp{background:var(--bg);font-size:12px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--muted);padding:7px 12px}
+  .tli{display:flex;align-items:center;gap:10px;width:100%;border:0;border-top:1px solid var(--border);background:#fff;padding:11px 12px;font:inherit;font-size:15px;cursor:pointer;color:var(--ink);text-align:left}
+  .tli:hover{background:#F9FAFB}
+  .tli .e{width:24px;text-align:center;font-size:18px}
+  .tli .n{flex:1;font-weight:700}
+  .tli .lt{font-size:11px;font-weight:800;color:#8a5a00;background:#FFF1D6;border-radius:999px;padding:2px 8px}
+  .tli.on{background:#FFF3EA;color:var(--accent-d)}
   .tbtn{border:1.5px solid var(--border);background:#fff;border-radius:12px;padding:12px 6px;font:inherit;font-weight:800;font-size:14px;cursor:pointer;color:var(--ink);text-align:center}
   .tbtn .e{display:block;font-size:22px;margin-bottom:4px}
   .tbtn.on{border-color:var(--accent);background:#FFF3EA;color:var(--accent-d)}
@@ -227,8 +242,11 @@
     <div class="wrap">
       <h1>Get local jobs from homeowners near you.</h1>
       <p>Yoodle is the neighbourhood map where people find help. Local trades get their own pin, a verified badge, and messages straight from homeowners — free.</p>
-      <div class="trades" id="trade-chips">
-        <span class="chip">🚰 Plumber</span><span class="chip">❄️ HVAC</span><span class="chip">⚡ Electrician</span><span class="chip">🏠 Roofer</span><span class="chip">🔑 Locksmith</span><span class="chip">🧺 Appliance repair</span>
+      <div id="trade-chips">
+        <p class="gl">Licensed trades</p>
+        <div class="trades"><span class="chip big">🚰 Plumber</span><span class="chip big">❄️ HVAC</span><span class="chip big">⚡ Electrician</span></div>
+        <p class="gl">Plus</p>
+        <div class="trades"><span class="chip">🏠 Roofer</span><span class="chip">🔑 Locksmith</span><span class="chip">🧺 Appliance repair</span></div>
       </div>
       <button class="btn btn-primary" id="cta-join" type="button">Join as a Pro — free</button>
     </div>
@@ -236,7 +254,7 @@
   <section class="points">
     <div class="wrap">
       <div class="pt"><div class="ic">📍</div><div><h3>Your own pin on the map</h3><p>Homeowners in your service area see you on the Yoodle map, marked as a Pro.</p></div></div>
-      <div class="pt"><div class="ic">✅</div><div><h3>Verified licence badge</h3><p>Add your licence and we'll check it — your profile then shows Verified.</p></div></div>
+      <div class="pt"><div class="ic">✅</div><div><h3>Verified licence badge</h3><p>Plumbers, HVAC, electricians and other licensed trades: add your licence and we'll check it — your profile then shows Verified.</p></div></div>
       <div class="pt"><div class="ic">💬</div><div><h3>Leads come to you</h3><p>Homeowners message you directly. No bidding, no lead fees, no commission.</p></div></div>
       <div class="gap"></div>
       <button class="btn btn-ghost" id="cta-signin" type="button">Already on Yoodle? Sign in</button>
@@ -606,7 +624,7 @@ async function startApp(){
     if (susp === true) { show('v-suspended'); $('hdr-btn').classList.remove('hidden'); $('hdr-btn').textContent = 'Sign out'; return; }
   } catch(_) {}
   const [tr, pr, pp, pc] = await Promise.all([
-    sb.from('pro_trades').select('key,label,emoji,licence_required').order('sort_order'),
+    sb.from('pro_trades').select('key,label,emoji,licence_required,featured').order('sort_order'),
     sb.from('profiles').select('id,name,helper_address,helper_lat,helper_lng,helper_bio,helper_expires_at,visible_on_map,terms_accepted_at,email_opt_out,is_tester,last_lat,last_lng').eq('id', me.id).maybeSingle(),
     sb.from('pro_profiles').select('*').eq('profile_id', me.id).maybeSingle(),
     sb.from('pro_credentials').select('*').eq('profile_id', me.id).maybeSingle()
@@ -621,13 +639,38 @@ async function startApp(){
 }
 
 /* ---------- setup form ---------- */
+// Plumber / HVAC / Electrician as big buttons (pro_trades.featured); the rest under "Other" → searchable list (Roman, 13 Oct)
+let _otherOpen = false, _tq = '';
 function renderTradeGrid(){
-  $('trade-grid').innerHTML = TRADES.map(t =>
-    `<button type="button" class="tbtn${sel.has(t.key)?' on':''}" data-k="${esc(t.key)}"><span class="e">${esc(t.emoji)}</span>${esc(t.label)}</button>`).join('');
-  $('trade-grid').querySelectorAll('.tbtn').forEach(b => b.onclick = () => {
-    const k = b.dataset.k; sel = sel.has(k) ? new Set() : new Set([k]); renderTradeGrid();   // one trade per pro (Roman, 11 Oct)
+  const top = TRADES.filter(t => t.featured), rest = TRADES.filter(t => !t.featured);
+  const k0 = [...sel][0], selOther = rest.find(t => t.key === k0);
+  const otherBtn = !rest.length ? '' : selOther
+    ? `<button type="button" class="tbtn on" id="t-other"><span class="e">${esc(selOther.emoji)}</span>${esc(selOther.label)}<span class="sub">Change ›</span></button>`
+    : `<button type="button" class="tbtn${_otherOpen?' on':''}" id="t-other"><span class="e">➕</span>Other<span class="sub">${_otherOpen?'Hide list':'Roofer, painter, gas…'}</span></button>`;
+  $('trade-grid').innerHTML = top.map(t =>
+    `<button type="button" class="tbtn${sel.has(t.key)?' on':''}" data-k="${esc(t.key)}"><span class="e">${esc(t.emoji)}</span>${esc(t.label)}</button>`).join('') + otherBtn;
+  $('trade-grid').querySelectorAll('.tbtn[data-k]').forEach(b => b.onclick = () => {
+    const k = b.dataset.k; sel = sel.has(k) ? new Set() : new Set([k]); _otherOpen = false; renderTradeGrid();   // one trade per pro (Roman, 11 Oct)
   });
+  let box = $('trade-other');
+  if (!box) { box = document.createElement('div'); box.id = 'trade-other'; box.className = 'tother'; $('trade-grid').after(box);
+    box.innerHTML = '<input class="tsrch" id="t-srch" type="search" placeholder="Search trades" autocomplete="off"><div class="tlist" id="t-list"></div>';
+    $('t-srch').oninput = () => { _tq = $('t-srch').value; renderTradeList(); }; }
+  box.classList.toggle('hidden', !_otherOpen);
+  const ob = $('t-other'); if (ob) ob.onclick = () => { _otherOpen = !_otherOpen; if (!_otherOpen) { _tq = ''; $('t-srch').value = ''; } renderTradeGrid(); };
+  if (_otherOpen) renderTradeList();
   updateLicHints();
+}
+function renderTradeList(){
+  const q = _tq.trim().toLowerCase(), rest = TRADES.filter(t => !t.featured && t.label.toLowerCase().includes(q));
+  const byName = (a, b) => a.label.localeCompare(b.label);
+  const grp = (title, list) => !list.length ? '' : `<div class="tgrp">${title}</div>` + list.sort(byName).map(t =>
+    `<button type="button" class="tli${sel.has(t.key)?' on':''}" data-k="${esc(t.key)}"><span class="e">${esc(t.emoji)}</span><span class="n">${esc(t.label)}${sel.has(t.key)?' ✓':''}</span>${t.licence_required?'<span class="lt">Licence</span>':''}</button>`).join('');
+  const html = grp('Licence needed', rest.filter(t => t.licence_required)) + grp('Other trades', rest.filter(t => !t.licence_required));
+  $('t-list').innerHTML = html || '<div class="tgrp" style="text-transform:none;letter-spacing:0">No match. Email support@yoodle.ca to suggest a trade.</div>';
+  $('t-list').querySelectorAll('.tli').forEach(b => b.onclick = () => {
+    sel = new Set([b.dataset.k]); _otherOpen = false; _tq = ''; $('t-srch').value = ''; renderTradeGrid();
+  });
 }
 
 function setLoc(l){
@@ -658,6 +701,7 @@ function openSetup(mode){
   $('fs-you').classList.toggle('hidden', tradeMode);
   $('fs-where').classList.toggle('hidden', tradeMode);
   sel = new Set(myPro ? (myPro.trades || []).slice(0, 1) : []);   // one trade per pro
+  _otherOpen = false; _tq = ''; if ($('t-srch')) $('t-srch').value = '';
   renderTradeGrid();
   const nm = myProfile.name || '';
   $('f-name').value = nm.includes('@') ? '' : nm;   // email sign-ups get the email as a name
@@ -1213,11 +1257,21 @@ function _startApp(session){
 }
 
 sb.auth.getSession().then(({ data }) => _startApp(data.session));
-/* landing chips from pro_trades (static chips above stay as fallback) — 11 Oct 2026 */
+/* landing chips from pro_trades: featured (licensed) big, rest behind "+ N more trades" — option A, Roman 13 Oct 2026 (static chips above stay as fallback) */
 (async () => {
   try {
-    const { data } = await sb.from('pro_trades').select('label,emoji').order('sort_order');
-    if (data && data.length) $('trade-chips').innerHTML = data.map(t => `<span class="chip">${esc(t.emoji)} ${esc(t.label)}</span>`).join('');
+    const { data } = await sb.from('pro_trades').select('label,emoji,featured').order('sort_order');
+    if (!data || !data.length) return;
+    const top = data.filter(t => t.featured), rest = data.filter(t => !t.featured).sort((a, b) => a.label.localeCompare(b.label));
+    const chip = (t, c) => `<span class="chip${c||''}">${esc(t.emoji)} ${esc(t.label)}</span>`;
+    let open = false;
+    const draw = () => {
+      $('trade-chips').innerHTML = (top.length ? `<p class="gl">Licensed trades</p><div class="trades">${top.map(t => chip(t, ' big')).join('')}</div>` : '')
+        + (rest.length ? `<p class="gl">Plus</p><div class="trades">${open ? rest.map(t => chip(t)).join('') + '<button type="button" class="chip more" id="chips-more">Show less</button>'
+          : `<button type="button" class="chip more" id="chips-more">+ ${rest.length} more trades ›</button>`}</div>` : '');
+      const m = $('chips-more'); if (m) m.onclick = () => { open = !open; draw(); };
+    };
+    draw();
   } catch(_) {}
 })();
 sb.auth.onAuthStateChange((_event, session) => _startApp(session));
