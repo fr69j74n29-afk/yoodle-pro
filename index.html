@@ -883,7 +883,17 @@ function fitToRadius(){
   const lat = myPro && myPro.lat, lng = myPro && myPro.lng, km = (myPro && myPro.service_radius_km) || 25;
   if (!pmap || lat == null) return;
   const dLat = km / 110.574, dLng = km / (111.32 * Math.cos(lat * Math.PI / 180));
+  // Keep the map on the pro's area (like yoodle.ca's zoom stop): clear old limits, fit the
+  // service ring, then allow one zoom level out and panning up to 3x the radius — no world view.
+  pmap.setMaxBounds(null); pmap.setMinZoom(null);
   pmap.fitBounds([[lng - dLng, lat - dLat], [lng + dLng, lat + dLat]], { padding: 30, duration: 0 });
+  try {
+    const mn = Math.max(0, pmap.getZoom() - 1);
+    if (isFinite(mn)) {
+      pmap.setMinZoom(mn); pmap.setMaxZoom(18);
+      pmap.setMaxBounds([[lng - 3 * dLng, lat - 3 * dLat], [lng + 3 * dLng, lat + 3 * dLat]]);
+    }
+  } catch (_) {}
 }
 
 function drawRing(){
