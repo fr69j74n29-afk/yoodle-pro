@@ -172,6 +172,13 @@
   #chat .ch-form{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:#fff;border-top:1px solid var(--border);max-width:560px;width:100%;margin:0 auto}
   #chat .ch-form textarea{flex:1;min-height:44px;max-height:120px;resize:none;padding:10px 12px;font-size:16px}
   #chat .ch-send{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:0 16px;font:inherit;font-weight:800;cursor:pointer}
+  /* direct-contact safety tip (14 Oct 2026, same as yoodle.ca) */
+  .safety-tip{align-self:stretch;background:#FFF6E6;border:1.5px solid #F2D49B;color:#7A5410;border-radius:14px;padding:12px 14px;margin-bottom:8px;font-size:14px;font-weight:600;line-height:1.45}
+  .safety-tip b{font-weight:800;display:block;margin-bottom:4px}
+  .safety-tip ul{margin:6px 0 8px;padding-left:18px}
+  .safety-tip .st-foot{display:flex;justify-content:flex-end;margin-top:4px}
+  .safety-tip .st-got{background:transparent;border:1.5px solid #F2D49B;color:#7A5410;border-radius:100px;padding:5px 12px;font:inherit;font-weight:800;font-size:13px;cursor:pointer}
+  .safety-mini{align-self:center;font-size:12.5px;color:var(--ink2);background:#fff;border:1px solid var(--border);padding:5px 14px;border-radius:100px;margin-bottom:8px}
   #chat .ch-ro{padding:12px;text-align:center;color:var(--ink2);background:#fff;border-top:1px solid var(--border)}
   /* profile tools */
   .tools .row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-top:1px solid var(--border)}
@@ -1068,6 +1075,19 @@ function renderMessages(){
 
 /* ---------- chat ---------- */
 let chatC = null, _chatPoll = null;
+// Direct-contact safety tip (14 Oct 2026): pro side of an open help_offer chat. 'Got it' remembered per chat on this device.
+function _tipSeen(cid){ try { return (JSON.parse(localStorage.getItem('yoodle_tip_seen') || '[]') || []).includes(cid); } catch (e) { return false; } }
+function dismissSafetyTip(){
+  if (!chatC) return;
+  try { const a = JSON.parse(localStorage.getItem('yoodle_tip_seen') || '[]') || []; if (!a.includes(chatC.conversation_id)) a.push(chatC.conversation_id); localStorage.setItem('yoodle_tip_seen', JSON.stringify(a.slice(-200))); } catch (e) {}
+  loadChat(false);
+}
+function safetyTipHtml(){
+  const c = chatC;
+  if (!c || !(inquiryIds.has(c.task_id) && c.applicant_id === me.id && c.task_status === 'claimed')) return '';
+  if (_tipSeen(c.conversation_id)) return '<div class="safety-mini">\u{1F6E1}\uFE0F Ask for job details before sharing contact info</div>';
+  return `<div class="safety-tip"><b>\u{1F6E1}\uFE0F ${esc(c.other_name || 'This neighbour')} contacted you directly</b>Before sharing your phone, email or address, ask about the job:<ul><li>What needs doing</li><li>Where and when</li><li>What it pays</li></ul>Keep chatting here until it feels right.<div class="st-foot"><button type="button" class="st-got" onclick="dismissSafetyTip()">Got it</button></div></div>`;
+}
 async function openChat(c){
   if (!c) return;
   chatC = c;
@@ -1088,8 +1108,8 @@ async function loadChat(scroll){
   if (!chatC) return;
   const { data } = await sb.from('messages').select('id,sender_id,body,created_at').eq('conversation_id', chatC.conversation_id).order('created_at');
   const box = $('ch-list'), atBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
-  box.innerHTML = (data || []).map(m => `<div class="bub ${m.sender_id === me.id ? 'me' : 'them'}">${esc(m.body)}<span class="t">${esc(fmtTime(m.created_at))}</span></div>`).join('')
-    || '<p class="muted" style="text-align:center">Say hello 👋</p>';
+  box.innerHTML = safetyTipHtml() + ((data || []).map(m => `<div class="bub ${m.sender_id === me.id ? 'me' : 'them'}">${esc(m.body)}<span class="t">${esc(fmtTime(m.created_at))}</span></div>`).join('')
+    || '<p class="muted" style="text-align:center">Say hello 👋</p>');
   if (scroll || atBottom) box.scrollTop = box.scrollHeight;
   const col = chatC.poster_id === me.id ? 'poster_last_read_at' : 'applicant_last_read_at';
   await sb.from('conversations').update({ [col]: new Date().toISOString() }).eq('id', chatC.conversation_id);
