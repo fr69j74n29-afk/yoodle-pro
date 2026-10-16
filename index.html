@@ -224,6 +224,7 @@
   .pcardm .bz{color:var(--ink2);font-size:14px}
   .pcardm .tr{margin-top:8px;font-weight:700;font-size:14.5px}
   .pcardm .ar{color:var(--muted);font-size:13.5px;margin-top:4px}
+  .pcardm .ds{margin-top:8px;font-size:14px;line-height:1.45;color:var(--ink2);white-space:pre-line;word-break:break-word;max-height:7.3em;overflow-y:auto}
   .maplibregl-ctrl-attrib{font-size:11px}
   .pill.none{background:#EEF1F3;color:var(--ink2)}
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;font-size:15px;z-index:80;display:none;max-width:calc(100% - 32px)}
@@ -958,7 +959,7 @@ function drawRing(){
 
 async function loadMapPros(){
   _prosAt = Date.now();
-  const { data: pros, error } = await sb.from('pro_profiles').select('profile_id,trades,business_name,status,licence_verified_at,address,lat,lng,visible,expires_at');
+  const { data: pros, error } = await sb.from('pro_profiles').select('profile_id,trades,business_name,status,licence_verified_at,address,lat,lng,visible,expires_at,bio');
   if (error) { mapMsg('Couldn’t load pros. Please try again.'); return; }
   const ids = (pros || []).map(p => p.profile_id);
   let profs = [];
@@ -1010,6 +1011,7 @@ function showProCard(r, mine){
     ${r.business_name ? `<div class="bz">${esc(r.business_name)}</div>` : ''}
     <div class="tr">${esc(trades)}</div>
     <div style="margin-top:6px">${badge}${paused ? ' <span class="pill pend">Listing paused</span>' : ''}</div>
+    ${r.bio ? `<div class="ds">${esc(r.bio)}</div>` : ''}
     <div class="ar">📍 ${esc(r.address || 'Address not set')}</div>
     ${mine ? '<div class="gap"></div><button class="btn btn-ghost" type="button" onclick="goTab(\'profile\')">Edit my Pro profile</button>' : ''}`;
   $('pcardm').classList.remove('hidden');
