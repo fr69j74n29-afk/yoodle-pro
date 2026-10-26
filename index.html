@@ -1036,13 +1036,16 @@ function renderProPins(){
 function showProCard(r, mine){
   const pr = r.pr || {}, verified = !!r.licence_verified_at;
   const trades = (r.trades || []).map(tradeLabel).join(' · ');
-  const badge = verified ? '<span class="pill ver">✓ Verified licence</span>' : '<span class="pill none">Licence not verified</span>';
+  // licence pill: verified → ✓; not verified → only for trades that need a licence (pro_trades.licence_required). ID pill always (Roman, 25 Oct)
+  const lic = verified ? '<span class="pill ver">✓ Verified licence</span>' : needsLicence(r.trades) ? '<span class="pill none">Licence not verified</span>' : '';
+  const idv = idvIds.has(r.profile_id) ? '<span class="pill idv">✓ ID verified</span>' : '<span class="pill none">ID not verified</span>';
+  const badge = [lic, idv].filter(Boolean).join(' ');
   const paused = mine && !r.visible;
   $('pcardm').innerHTML = `<button class="x" type="button" aria-label="Close" onclick="$('pcardm').classList.add('hidden')">×</button>
     <div class="nm">${esc(mine ? 'You — ' + (pr.name || '') : (pr.name || 'Pro'))}</div>
     ${r.business_name ? `<div class="bz">${esc(r.business_name)}</div>` : ''}
     <div class="tr">${esc(trades)}</div>
-    <div style="margin-top:6px">${badge}${idvIds.has(r.profile_id) ? ' <span class="pill idv">✓ ID verified</span>' : ''}${paused ? ' <span class="pill pend">Listing paused</span>' : ''}</div>
+    <div style="margin-top:6px;display:flex;flex-wrap:wrap;gap:6px">${badge}${paused ? '<span class="pill pend">Listing paused</span>' : ''}</div>
     ${r.bio ? `<div class="ds">${esc(r.bio)}</div>` : ''}
     <div class="ar">📍 ${esc(r.address || 'Address not set')}</div>
     ${mine ? '<div class="gap"></div><button class="btn btn-ghost" type="button" onclick="goTab(\'profile\')">Edit my Pro profile</button>' : ''}`;
