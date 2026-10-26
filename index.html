@@ -991,22 +991,19 @@ function drawRing(){
 
 async function loadMapPros(){
   _prosAt = Date.now();
-  const { data: pros, error } = await sb.from('pro_profiles').select('profile_id,trades,business_name,status,licence_verified_at,address,lat,lng,visible,expires_at,bio');
+  if (!myPro || myPro.lat == null || myPro.lng == null) return;
+  const km = myPro.service_radius_km || 25;
+  // Other pros: nearby approved + visible + unexpired only, filtered in the database — same function as yoodle.ca
+  // (get_pros_near, 26 Oct 2026). The table itself is no longer readable for other pros' rows.
+  // Radius 3x the travel radius (min 30 km) = how far this map lets you pan (fitToRadius).
+  const { data: pros, error } = await sb.rpc('get_pros_near', { user_lat: myPro.lat, user_lng: myPro.lng, radius_km: Math.max(30, km * 3), lim: 300 });
   if (error) { mapMsg('Couldn’t load pros. Please try again.'); return; }
-  const ids = (pros || []).map(p => p.profile_id);
-  let profs = [];
-  if (ids.length) {
-    const { data } = await sb.from('profiles').select('id,name,is_tester').in('id', ids);
-    profs = data || [];
-  }
-  const now = new Date(), byId = {}; profs.forEach(p => byId[p.id] = p);
-  proRows = (pros || []).map(p => ({ ...p, pr: byId[p.profile_id] })).filter(r => {
-    const pr = r.pr; if (!pr || r.lat == null || r.lng == null) return false;
-    if (r.profile_id === me.id) return true;                 // always show myself
-    if (r.status === 'suspended') return false;
-    if (pr.is_tester && !myProfile.is_tester) return false;   // testers only see testers
-    return r.visible && r.expires_at && new Date(r.expires_at) > now;   // the Pro listing's own pause/expiry
-  });
+  const others = (pros || [])
+    .filter(p => p.profile_id !== me.id && !(p.is_tester && !myProfile.is_tester))   // testers only see testers
+    .map(p => ({ ...p, pr: { id: p.profile_id, name: p.name, is_tester: p.is_tester } }));
+  // always show myself (own row from startApp, even pending / paused)
+  const mine = { ...myPro, pr: { id: me.id, name: myProfile.name, is_tester: myProfile.is_tester } };
+  proRows = [...others, mine];
   renderProPins();
 }
 
