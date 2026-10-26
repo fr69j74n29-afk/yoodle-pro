@@ -227,6 +227,18 @@
   .pcardm .ds{margin-top:8px;font-size:14px;line-height:1.45;color:var(--ink2);white-space:pre-line;word-break:break-word;max-height:7.3em;overflow-y:auto}
   .maplibregl-ctrl-attrib{font-size:11px}
   .pill.none{background:#EEF1F3;color:var(--ink2)}
+  /* ===== ID verification (Stripe Identity) — same flow + price as yoodle.ca (Oct 2026) ===== */
+  :root{--idv:#2563EB;--idv-soft:#EAF1FD;--idv-line:#BFD3F6}
+  .pill.idv{background:var(--idv-soft);color:var(--idv);border:1px solid var(--idv-line)}
+  .ppin .iv{position:absolute;left:-5px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:var(--idv);color:#fff;font-size:10px;font-weight:900;display:grid;place-items:center;border:2px solid #fff}
+  .idvbox{display:flex;gap:12px;align-items:flex-start}
+  .idvbox .ic{width:42px;height:42px;border-radius:12px;background:var(--idv);display:grid;place-items:center;font-size:20px;flex:0 0 auto}
+  .idvbox .t{font-weight:800;font-size:16px}
+  .idvbox .d{color:var(--ink2);font-size:14px;margin-top:2px}
+  .btn-idv{background:var(--idv);color:#fff;margin-top:12px}
+  .idv-li{display:flex;gap:10px;align-items:flex-start;font-size:15px;color:var(--ink2);margin:0 0 10px}
+  .idv-price{display:flex;justify-content:space-between;align-items:center;background:var(--bg);border-radius:12px;padding:11px 14px;margin:14px 0;font-weight:800}
+  .idv-price span:last-child{font-weight:700;color:var(--muted);font-size:14px}
   #toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:12px 18px;border-radius:12px;font-weight:700;font-size:15px;z-index:80;display:none;max-width:calc(100% - 32px)}
 </style>
 </head>
@@ -300,6 +312,7 @@
         <div class="gap"></div>
         <button class="btn btn-ghost" id="btn-pause" type="button"></button>
       </div>
+      <div class="card" id="idv-card" style="margin-top:0"></div>
     </div>
 
     <!-- pro setup / edit -->
@@ -493,6 +506,24 @@
   </div>
 </div>
 
+<!-- ===== ID verification consent (same wording as yoodle.ca) ===== -->
+<div class="scrim" id="idv-sheet" role="dialog" aria-modal="true" aria-labelledby="idv-title">
+  <div class="sheet">
+    <button class="x" id="idv-close" type="button" aria-label="Close">×</button>
+    <h2 id="idv-title">Get ID verified</h2>
+    <p class="sub">Stripe, our payments partner, checks your photo ID and a live selfie. Yoodle never sees or stores your ID or selfie.</p>
+    <div class="idv-li"><span>🪪</span><span>Driver's licence, passport or provincial ID card</span></div>
+    <div class="idv-li"><span>🤳</span><span>A selfie taken with your phone's camera, matched to your ID photo</span></div>
+    <div class="idv-li"><span>✅</span><span>Homeowners see a <span class="pill idv">✓ ID verified</span> badge on your Pro pin and profile</span></div>
+    <div class="idv-li"><span>🔁</span><span>Up to 3 tries included if a photo doesn't work</span></div>
+    <div class="idv-price"><span>$2.99 + tax</span><span>tax added at checkout</span></div>
+    <label class="chk" style="margin-bottom:14px"><input type="checkbox" id="idv-consent">
+      <span>I'm 18 or older and agree that Stripe may process my ID and a selfie, including biometric data from my face, to verify my identity, and that Stripe shares the first and last name on my ID with Yoodle (kept private). <a href="https://yoodle.ca/privacy#id-verification" target="_blank" rel="noopener">Privacy</a> · <a href="https://yoodle.ca/terms#id-verification" target="_blank" rel="noopener">Terms</a></span></label>
+    <button class="btn" id="idv-go" type="button" disabled style="background:var(--idv);color:#fff">Continue to payment</button>
+    <p class="fine">Non-refundable · 3 tries included. Next: Stripe's secure payment page, then Stripe's ID check.</p>
+  </div>
+</div>
+
 <!-- ===== Sign-in sheet ===== -->
 <div class="scrim" id="auth" role="dialog" aria-modal="true" aria-labelledby="auth-title">
   <div class="sheet">
@@ -641,7 +672,8 @@ async function startApp(){
   myProfile = pr.data || { id: me.id };
   myPro = pp.data || null;
   myCred = pc.data || null;
-  if (myPro) { setNav(true); goTab(currentTab || 'map'); loadConvs(); }
+  loadIdvIds();
+  if (myPro) { setNav(true); goTab(_idvReturn ? 'profile' : (currentTab || 'map')); loadConvs(); if (_idvReturn) handleIdvReturn(); }
   else { setNav(false); openSetup(false); }
   $('hdr-btn').classList.toggle('hidden', !!myPro); $('hdr-btn').textContent = 'Sign out';
 }
@@ -993,7 +1025,7 @@ function renderProPins(){
     const el = document.createElement('div');
     const paused = mine && !r.visible;
     el.className = 'ppin' + (mine ? ' me' : '') + (paused ? ' dim' : '');
-    el.innerHTML = esc(t ? t.emoji : '🔧') + (r.licence_verified_at ? '<span class="v">✓</span>' : '') + (mine ? '<span class="you">You</span>' : '');
+    el.innerHTML = esc(t ? t.emoji : '🔧') + (r.licence_verified_at ? '<span class="v">✓</span>' : '') + (idvIds.has(r.profile_id) ? '<span class="iv" title="ID checked by Stripe">✓</span>' : '') + (mine ? '<span class="you">You</span>' : '');
     el.onclick = ev => { ev.stopPropagation(); showProCard(r, mine); };
     proMarkers.push(new maplibregl.Marker({ element: el }).setLngLat([ln, la]).addTo(pmap));
   });
@@ -1010,7 +1042,7 @@ function showProCard(r, mine){
     <div class="nm">${esc(mine ? 'You — ' + (pr.name || '') : (pr.name || 'Pro'))}</div>
     ${r.business_name ? `<div class="bz">${esc(r.business_name)}</div>` : ''}
     <div class="tr">${esc(trades)}</div>
-    <div style="margin-top:6px">${badge}${paused ? ' <span class="pill pend">Listing paused</span>' : ''}</div>
+    <div style="margin-top:6px">${badge}${idvIds.has(r.profile_id) ? ' <span class="pill idv">✓ ID verified</span>' : ''}${paused ? ' <span class="pill pend">Listing paused</span>' : ''}</div>
     ${r.bio ? `<div class="ds">${esc(r.bio)}</div>` : ''}
     <div class="ar">📍 ${esc(r.address || 'Address not set')}</div>
     ${mine ? '<div class="gap"></div><button class="btn btn-ghost" type="button" onclick="goTab(\'profile\')">Edit my Pro profile</button>' : ''}`;
@@ -1164,6 +1196,7 @@ function renderProfileHead(){
   const verified = !!p.licence_verified_at, hasLic = !!(myCred && myCred.licence_number);
   $('st-pill').innerHTML = p.status === 'suspended' ? '<span class="pill sus">Pro listing suspended</span>'
     : verified ? '<span class="pill ver">✓ Verified licence</span>' : hasLic ? '<span class="pill pend">Licence check pending</span>' : '<span class="pill none">No licence added</span>';
+  if (idvIds.has(me.id)) $('st-pill').insertAdjacentHTML('beforeend', ' <span class="pill idv">✓ ID verified</span>');
   const expired = !p.expires_at || new Date(p.expires_at) <= new Date();
   const paused = p.visible === false;
   $('st-note').textContent = p.status === 'suspended' ? 'Your Pro listing is hidden. Contact support@yoodle.ca.'
@@ -1177,6 +1210,7 @@ function renderProfileHead(){
     : 'Live until ' + new Date(p.expires_at).toLocaleDateString('en-CA', { month:'short', day:'numeric', year:'numeric' });
   $('btn-pause').textContent = paused ? 'Resume my listing' : 'Pause my listing';
   $('btn-pause').classList.toggle('hidden', p.status === 'suspended');
+  renderIdvCard();
 }
 $('btn-pause').onclick = async () => {
   const resume = myPro.visible === false;
@@ -1269,6 +1303,132 @@ $('del-go').onclick = async () => {
   try { localStorage.clear(); } catch(_) {}
   await sb.auth.signOut(); toast('Your account was deleted.');
 };
+
+/* ---------- ID verification (Stripe Identity, Oct 2026) ----------
+   Same backend + price as yoodle.ca: identity-checkout → Stripe Checkout → ?idv=paid → identity-start → Stripe Identity → ?idv=done.
+   identity-webhook writes identity_verifications; members can only READ their own row. Badge list = get_verified_ids() (live checks only).
+   The Edge Functions send pro.yoodle.ca callers back to pro.yoodle.ca (ORIGINS + return path). */
+const _idvParam = new URLSearchParams(location.search).get('idv');
+let _idvReturn = ['paid','done','cancel'].includes(_idvParam) ? _idvParam : null;
+if (_idvParam) { try { history.replaceState(null, '', location.pathname); } catch(_) {} }
+const IDV_PATH = location.pathname === '/test.html' ? '/test.html' : '/';
+let idvIds = new Set(), _idvRow = null, _idvBusy = false;
+const IDV_ERR = {
+  document_expired:'Your ID has expired.',
+  document_type_not_supported:"That type of ID isn't accepted — use a driver's licence, passport or provincial ID card.",
+  document_unverified_other:"Stripe couldn't verify that ID.",
+  selfie_face_mismatch:"The selfie didn't match the photo on your ID.",
+  selfie_document_missing_photo:'The ID has no photo of you.',
+  selfie_manipulated:"The selfie couldn't be used.",
+  selfie_unverified_other:"Stripe couldn't verify the selfie.",
+  under_supported_age:'You need to be 18 or older.',
+  consent_declined:'The check was stopped before it finished.',
+  abandoned:"The check wasn't finished.",
+  camera_not_supported:"Your camera isn't supported — try another phone.",
+  device_not_supported:"Your device isn't supported — try another phone.",
+  country_not_supported:"ID from that country isn't supported."
+};
+const IDV_CALL_ERR = {
+  not_signed_in:'Please sign in again', already_verified:"You're already ID verified ✓",
+  not_paid:"Payment hasn't arrived yet — try again in a moment", no_attempts_left:'No tries left — get verified again for 3 more',
+  processing:'Stripe is still checking your last try', server:'Something went wrong — please try again', network:'No connection — please try again'
+};
+async function loadIdvIds(){
+  try {
+    const { data, error } = await sb.rpc('get_verified_ids');
+    if (error) return;
+    const s = new Set((data || []).map(x => typeof x === 'string' ? x : (x && (x.get_verified_ids || x.id))).filter(Boolean));
+    const changed = s.size !== idvIds.size || [...s].some(id => !idvIds.has(id));
+    idvIds = s;
+    if (!changed) return;
+    if (pmap && proRows.length) renderProPins();
+    if (myPro && !$('pf-head').classList.contains('hidden')) renderProfileHead();
+  } catch(_) {}
+}
+async function loadIdvRow(){
+  const { data } = await sb.from('identity_verifications').select('status,paid_at,attempts_used,max_attempts,last_error_code,verified_at').eq('profile_id', me.id).maybeSingle();
+  _idvRow = data || null; return _idvRow;
+}
+function idvState(row){
+  if (row?.status === 'verified') return 'verified';
+  if (row?.status === 'processing') return 'processing';
+  if (row?.paid_at && row.attempts_used < row.max_attempts) return row.status === 'requires_input' ? 'retry' : 'paid';
+  if (row?.paid_at && row.attempts_used >= row.max_attempts) return 'used_up';
+  return 'new';
+}
+const _idvLeft = row => { const n = Math.max(0, (row?.max_attempts || 3) - (row?.attempts_used || 0)); return `${n} ${n === 1 ? 'try' : 'tries'} left`; };
+async function renderIdvCard(){
+  const el = $('idv-card'); if (!el || !me) return;
+  const row = await loadIdvRow(), st = idvState(row);
+  const box = (ic, t, d, btn) => `<div class="idvbox"><div class="ic">${ic}</div><div style="flex:1;min-width:0"><div class="t">${t}</div><div class="d">${d}</div></div></div>${btn || ''}`;
+  const btn = (label, act, ghost) => `<button class="btn ${ghost ? 'btn-ghost' : 'btn-idv'}" type="button" data-idv="${act}"${ghost ? ' style="margin-top:12px"' : ''}>${label}</button>`;
+  if (st === 'verified') {
+    const d = row?.verified_at ? new Date(row.verified_at).toLocaleDateString('en-CA', { month:'short', year:'numeric' }) : '';
+    el.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="pill idv">✓ ID verified</span><span class="muted" style="font-size:14px">Checked by Stripe${d ? ' · ' + esc(d) : ''}</span></div>`;
+  } else if (st === 'processing') el.innerHTML = box('⏳', 'Checking your ID…', 'Stripe is checking your ID and selfie — usually a few minutes.', btn('Refresh', 'refresh', true));
+  else if (st === 'paid') el.innerHTML = box('🛡️', 'Continue your ID check', `You've paid — the ID and selfie check is next. ${_idvLeft(row)}.`, btn('Continue verification', 'start'));
+  else if (st === 'retry') el.innerHTML = box('⚠️', "Your ID check didn't go through", `${esc(IDV_ERR[row?.last_error_code] || "Stripe couldn't finish the check.")} ${_idvLeft(row)} — no extra charge.`, btn('Try again', 'start'));
+  else el.innerHTML = box('🛡️', 'Get ID verified', (st === 'used_up' ? 'Your 3 tries are used up. ' : '') + 'Homeowners see a ✓ ID verified badge on your Pro pin and profile. Checked by Stripe — takes about 2 minutes.', btn('Get verified · $2.99 + tax', 'open'));
+  el.querySelectorAll('[data-idv]').forEach(b => b.onclick = () => {
+    const a = b.dataset.idv;
+    if (a === 'open') openIdvConsent(); else if (a === 'start') startIdvCheck('pro'); else renderIdvCard();
+  });
+}
+function logIdvTap(step, src){ try { return sb.rpc('log_idv_tap', { p_step: step, p_source: src || null }).then(() => {}, () => {}); } catch(_) { return Promise.resolve(); } }
+const _idvLogged = p => Promise.race([p, new Promise(r => setTimeout(r, 1500))]);
+function openIdvConsent(){
+  logIdvTap('open', 'pro');
+  $('idv-consent').checked = false; $('idv-go').disabled = true; $('idv-go').textContent = 'Continue to payment';
+  $('idv-sheet').classList.add('open');
+}
+$('idv-close').onclick = () => $('idv-sheet').classList.remove('open');
+$('idv-consent').onchange = e => { $('idv-go').disabled = !e.target.checked; };
+async function _idvCall(fn){
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return { error: 'not_signed_in' };
+    const r = await fetch(SB_URL + '/functions/v1/' + fn, { method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + session.access_token, 'apikey': SB_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ return_path: IDV_PATH }) });
+    let b = {}; try { b = await r.json(); } catch(_) {}
+    return b || {};
+  } catch(_) { return { error: 'network' }; }
+}
+$('idv-go').onclick = async () => {
+  if (!$('idv-consent').checked) return;
+  const g = $('idv-go'), logged = logIdvTap('pay', 'pro');
+  g.disabled = true; g.textContent = 'Opening Stripe…';
+  const b = await _idvCall('identity-checkout');
+  if (b.url) { await _idvLogged(logged); location.href = b.url; return; }
+  if (b.already_paid) { $('idv-sheet').classList.remove('open'); return startIdvCheck('pro'); }
+  g.disabled = false; g.textContent = 'Continue to payment';
+  if (b.error === 'already_verified') { $('idv-sheet').classList.remove('open'); toast('✅ ' + IDV_CALL_ERR.already_verified); renderIdvCard(); return; }
+  toast('❌ ' + (IDV_CALL_ERR[b.error] || IDV_CALL_ERR.server));
+};
+async function startIdvCheck(src){
+  if (_idvBusy) return; _idvBusy = true; toast('Opening Stripe…');
+  const logged = logIdvTap('start', src || null);
+  const b = await _idvCall('identity-start');
+  _idvBusy = false;
+  if (b.url) { await _idvLogged(logged); location.href = b.url; return; }
+  toast('❌ ' + (IDV_CALL_ERR[b.error] || IDV_CALL_ERR.server)); renderIdvCard();
+}
+const _idvSleep = ms => new Promise(r => setTimeout(r, ms));
+async function handleIdvReturn(){
+  const r = _idvReturn; _idvReturn = null; if (!r) return;
+  if (r === 'cancel') { logIdvTap('cancel', 'pro'); toast('Payment cancelled — nothing was charged'); return; }
+  if (r === 'paid') {
+    for (let i = 0; i < 8; i++) { const row = await loadIdvRow(); if (row?.paid_at || row?.status === 'verified') break; await _idvSleep(2000); }
+    await renderIdvCard();
+    if (_idvRow?.paid_at && _idvRow.status !== 'verified') { toast('✅ Payment received — starting your ID check'); setTimeout(() => startIdvCheck(), 1200); }
+    else toast('Payment is processing — tap Continue in a moment');
+    return;
+  }
+  toast('Thanks! Stripe is checking your ID…');
+  for (let i = 0; i < 10; i++) { await _idvSleep(2500); const row = await loadIdvRow(); if (row && row.status !== 'pending' && row.status !== 'processing') break; }
+  await renderIdvCard(); await loadIdvIds();
+  if (_idvRow?.status === 'verified') toast("✅ You're ID verified!");
+}
 
 function _startApp(session){
   if (!session) { me = null; _appStartedFor = null; showLanding(); return; }
