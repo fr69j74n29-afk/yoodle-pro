@@ -1,0 +1,7 @@
+# robots.txt — Yoodle Pros (pro.yoodle.ca)
+# Last updated: 26 October 2026
+User-agent: *
+Allow: /
+Disallow: /manifest.json
+
+Sitemap: https://pro.yoodle.ca/sitemap.xml
