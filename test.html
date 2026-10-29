@@ -722,6 +722,7 @@ async function renderPlansCard(){
     const k = b.dataset.plan;
     b.classList.toggle('hidden', !okStatus || (!!p && k === cur && p.billing_interval === _bill));
     b.textContent = !p ? 'Choose ' + PLAN_NAME[k] : (k === cur ? 'Switch to ' + (_bill === 'year' ? 'yearly' : 'monthly') : 'Switch to ' + PLAN_NAME[k]);
+    delete b.dataset.confirm; delete b.dataset.pdate;
   });
   const st = $('plans-status');
   if (!p) { st.classList.add('hidden'); st.innerHTML = ''; return; }
@@ -759,10 +760,29 @@ async function planAction(fn, body, busyMsg, okMsg){
   else if (okMsg) toast(okMsg);
   for (let i = 0; i < 5; i++) { await new Promise(r => setTimeout(r, 1500)); await renderPlansCard(); }
 }
-document.querySelectorAll('#plans-card .plan-go').forEach(b => b.onclick = () => {
+const _money = c => '$' + (c / 100).toFixed(2);
+document.querySelectorAll('#plans-card .plan-go').forEach(b => b.onclick = async () => {
   const k = b.dataset.plan;
   if (!_myPlan) return planAction('pro-checkout', { plan_key: k, interval: _bill }, 'Opening Stripe…');
-  planAction('pro-change-plan', { action: 'change', plan_key: k, interval: _bill }, 'Updating your plan…');
+  // switching: first tap shows what happens (upgrade = amount charged now; downgrade = date), second tap confirms
+  if (b.dataset.confirm === '1') {
+    const pd = Number(b.dataset.pdate) || undefined;
+    return planAction('pro-change-plan', { action: 'change', plan_key: k, interval: _bill, proration_date: pd }, 'Updating your plan…');
+  }
+  if (_planBusy) return; _planBusy = true;
+  const label = b.textContent; b.textContent = 'Checking the price…';
+  const v = await _planCall('pro-change-plan', { action: 'preview', plan_key: k, interval: _bill });
+  _planBusy = false;
+  if (v.error) { b.textContent = label; toast('❌ ' + (PLAN_ERR[v.error] || PLAN_ERR.server)); return; }
+  if (v.unchanged) { b.textContent = label; return; }
+  b.dataset.confirm = '1';
+  if (v.kind === 'upgrade') {
+    b.dataset.pdate = String(v.proration_date || '');
+    b.textContent = 'Tap again to pay ' + _money(v.due_now_cents) + ' now' + (v.tax_cents ? ' (incl. ' + _money(v.tax_cents) + ' tax)' : '');
+    toast('You get credit for the unused part of your current plan. New price: ' + _money(v.new_price_cents) + (_bill === 'year' ? '/year' : '/month') + ' + tax.');
+  } else {
+    b.textContent = 'Tap again to switch on ' + _fmtDate(v.takes_effect) + ' — no charge today';
+  }
 });
 document.querySelectorAll('#plans-card .bill button').forEach(b => b.addEventListener('click', () => setTimeout(renderPlansCard, 0)));
 async function handlePlanReturn(){
