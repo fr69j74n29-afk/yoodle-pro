@@ -380,31 +380,21 @@
             <li>Your own business page on yoodle.ca/pros</li>
           </ul>
         </div>
-        <div class="plan">
-          <span class="tag cur hidden" data-cur="starter">Your plan</span>
-          <h3>Starter</h3>
-          <p class="who">Always on the map</p>
-          <div class="price"><span class="now" data-m="$4.99" data-y="$49.99">$4.99</span><span class="per" data-m="/month" data-y="/year">/month</span><span class="was" data-m="$19.99" data-y="$199.99">$19.99</span></div>
-          <ul>
-            <li>Always visible on the yoodle.ca map while subscribed — not only behind the 🔍 PRO filter</li>
-            <li>Licence and/or business verification included<small>Requires ID verification first ($2.99 one-time)</small></li>
-            <li>Instant text alerts for new inquiries <span class="soon">Coming soon</span></li>
-            <li>Featured weekly in Yoodle's “Pros near you” posts on Facebook, Instagram &amp; X</li>
-          </ul>
-          <button class="btn btn-primary plan-go" type="button" data-plan="starter">Choose Starter</button>
-        </div>
         <div class="plan best">
-          <span class="tag" data-best="pro">Best value</span>
+          <span class="tag" data-best="pro">Founder price</span>
           <span class="tag cur hidden" data-cur="pro">Your plan</span>
           <h3>Pro</h3>
-          <p class="who">Get recommended to homeowners</p>
+          <p class="who">Always on the map. Recommended to homeowners.</p>
           <div class="price"><span class="now" data-m="$9.99" data-y="$99.99">$9.99</span><span class="per" data-m="/month" data-y="/year">/month</span><span class="was" data-m="$29.99" data-y="$299.99">$29.99</span></div>
           <ul>
-            <li class="inc">Everything in Starter, plus:</li>
-            <li>Your own custom ad on Facebook, Instagram &amp; X</li>
-            <li>Suggested to homeowners nearby when they post a job in your trade</li>
+            <li>Always visible on the yoodle.ca map while subscribed — not only behind the 🔍 PRO filter</li>
             <li>Listed first in Find a PRO</li>
-            <li>“Meet the Pro” YouTube or TikTok video on your page<small>Yearly plan · one video per year</small></li>
+            <li>Suggested to homeowners nearby when they post a job in your trade</li>
+            <li>Licence and/or business verification included<small>Requires ID verification first ($2.99 one-time)</small></li>
+            <li>Featured weekly in Yoodle's “Pros near you” posts on Facebook, Instagram &amp; X</li>
+            <li>Your own custom ad on Facebook, Instagram &amp; X</li>
+            <li>Instant text alerts for new inquiries <span class="soon">Coming soon</span></li>
+            <li>“Meet the Pro” YouTube or TikTok video on your page<small>Free bonus with a yearly founder plan · otherwise a paid extra (coming soon)</small></li>
           </ul>
           <button class="btn btn-primary plan-go" type="button" data-plan="pro">Choose Pro</button>
         </div>
@@ -706,9 +696,25 @@ async function loadMyPlan(){
   _myPlan = (data || []).find(r => !r.is_free) || null;
   return _myPlan;
 }
+// 30 Oct: show THIS pro's real price once plans are on sale (founder price only if they'd get it); before launch the card keeps its text
+async function applyMyPrices(){
+  try {
+    const { data } = await sb.rpc('get_pro_plans_for_me');
+    const po = (data || []).find(r => r.plan_key === 'pro'); if (!po) return;
+    const card = document.querySelector('#plans-card .plan.best'); if (!card) return;
+    const m = c => '$' + (c / 100).toFixed(2), k = _bill === 'year' ? 'y' : 'm';
+    const set = (el, mv, yv) => { if (!el) return; el.dataset.m = mv; el.dataset.y = yv; el.textContent = k === 'y' ? yv : mv; };
+    set(card.querySelector('.now'), m(po.month_cents), m(po.year_cents));
+    const was = card.querySelector('.was');
+    if (po.founder_price) set(was, m(po.full_month_cents), m(po.full_year_cents)); else if (was) was.classList.add('hidden');
+    const tag = card.querySelector('[data-best]'); if (tag && !po.founder_price) tag.classList.add('hidden');
+    document.querySelectorAll('#plans-card .founder:not(.spots)').forEach(el => el.classList.toggle('hidden', !po.founder_price));
+  } catch (_) {}
+}
 async function renderPlansCard(){
   if (!$('plans-card') || !me) return;
   await loadMyPlan();
+  applyMyPrices();
   const p = _myPlan, cur = p ? p.plan_key : 'free';
   if (p && !_billSynced) {   // show the pro's own billing period first
     _billSynced = true;
@@ -1514,10 +1520,18 @@ $('del-close').onclick = () => $('del-sheet').classList.remove('open');
 $('del-go').onclick = async () => {
   if ($('del-in').value.trim() !== 'DELETE') return setMsg('msg-del', 'Type DELETE to confirm.', 'err');
   const b = $('del-go'); b.disabled = true; setMsg('msg-del', 'Deleting…');
+  try { await loadMyPlan(); } catch (_) {}
+  if (_myPlan && (_myPlan.status === 'past_due' || _myPlan.status === 'unpaid')) {
+    setMsg('msg-del', 'Cancelling your unpaid plan…');
+    const c = await _planCall('pro-change-plan', { action: 'cancel' });
+    if (c.error) { b.disabled = false; return setMsg('msg-del', 'Couldn\u2019t cancel your plan. Please email support@yoodle.ca.', 'err'); }
+    for (let i = 0; i < 10 && _myPlan; i++) { await new Promise(r => setTimeout(r, 1500)); await loadMyPlan(); }
+  }
+  const _planMsg = e => (e && e.hint === 'plan_active') ? e.message : null;
   if (delMode === 'pro') {
     const { error } = await sb.rpc('delete_my_pro_profile');
     b.disabled = false;
-    if (error) return setMsg('msg-del', 'Couldn\u2019t delete your Pro profile. Please try again.', 'err');
+    if (error) return setMsg('msg-del', _planMsg(error) || 'Couldn\u2019t delete your Pro profile. Please try again.', 'err');
     $('del-sheet').classList.remove('open'); closeSettings();
     myPro = null; myCred = null; proRows = []; _prosAt = 0; currentTab = null;
     setNav(false); openSetup(false);
@@ -1526,7 +1540,7 @@ $('del-go').onclick = async () => {
   }
   const { error } = await sb.rpc('delete_my_account');
   b.disabled = false;
-  if (error) return setMsg('msg-del', 'Couldn’t delete your account. Please email support@yoodle.ca.', 'err');
+  if (error) return setMsg('msg-del', _planMsg(error) || 'Couldn’t delete your account. Please email support@yoodle.ca.', 'err');
   $('del-sheet').classList.remove('open');
   try { localStorage.clear(); } catch(_) {}
   await sb.auth.signOut(); toast('Your account was deleted.');
