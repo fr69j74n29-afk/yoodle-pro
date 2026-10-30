@@ -219,6 +219,7 @@
   #pmap{position:absolute;inset:0;background:#E9EEF1}
   .map-chip{position:absolute;top:12px;left:12px;z-index:3;background:#fff;border:1px solid var(--border);border-radius:12px;padding:8px 12px;font-weight:800;font-size:14px;box-shadow:0 2px 10px rgba(15,42,61,.12);max-width:calc(100% - 24px)}
   .map-chip .s{display:block;font-weight:600;font-size:12.5px;color:var(--ink2)}
+  .map-chip .o{display:block;color:var(--accent-d,#C4560B)}   /* opportunity line (30 Oct 2026) */
   .map-msg{position:absolute;inset:0;display:grid;place-items:center;text-align:center;padding:24px;color:var(--ink2);z-index:2}
   .ppin{width:38px;height:38px;border-radius:50%;background:var(--accent);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);display:grid;place-items:center;font-size:18px;cursor:pointer;position:relative}
   .ppin .v{position:absolute;right:-5px;bottom:-5px;width:18px;height:18px;border-radius:50%;background:var(--ok);color:#fff;font-size:11px;font-weight:900;display:grid;place-items:center;border:2px solid #fff}
@@ -856,7 +857,7 @@ function showLanding(){
   $('app').classList.add('hidden'); $('landing').classList.remove('hidden');
   $('hdr-btn').classList.remove('hidden'); $('hdr-btn').textContent = 'Sign in';
   closeSettings();
-  setNav(false); $('chat').classList.add('hidden'); clearInterval(_chatPoll); currentTab = null; convs = []; proRows = []; _prosAt = 0;
+  setNav(false); $('chat').classList.add('hidden'); clearInterval(_chatPoll); currentTab = null; convs = []; proRows = []; _prosAt = 0; oppData = null;
 }
 
 /* ---------- helpers ---------- */
@@ -1150,6 +1151,7 @@ $('btn-save').onclick = async () => {
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 const OSM_RASTER = { version: 8, sources: { osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '© OpenStreetMap contributors' } }, layers: [{ id: 'osm', type: 'raster', source: 'osm' }] };
 let pmap = null, pmapReady = false, proMarkers = [], proRows = [], _prosAt = 0;
+let oppData = null;   // "sea of opportunity" shading: get_pro_opportunity_glow (30 Oct 2026)
 
 function _hdrH(){ document.documentElement.style.setProperty('--hdr-h', document.querySelector('header.top').offsetHeight + 'px'); }
 window.addEventListener('resize', _hdrH);
@@ -1189,14 +1191,14 @@ function openMap(){
     const collapseAttrib = () => { try { document.querySelectorAll('#pmap .maplibregl-ctrl-attrib.maplibregl-compact-show').forEach(el => el.classList.remove('maplibregl-compact-show')); } catch (_) {} };
     pmap.once('idle', collapseAttrib);
     let styled = false;
-    pmap.on('style.load', () => { styled = true; pmapReady = true; drawRing(); setTimeout(collapseAttrib, 300); });
+    pmap.on('style.load', () => { styled = true; pmapReady = true; drawRing(); drawOpp(); setTimeout(collapseAttrib, 300); });
     setTimeout(() => { if (!styled && pmap) pmap.setStyle(OSM_RASTER); }, 8000);   // fallback like yoodle.ca
     pmap.on('click', e => { if (!e.originalEvent.target.closest('.ppin')) $('pcardm').classList.add('hidden'); });
   } else {
     pmap.resize();
   }
   fitToRadius();
-  if (Date.now() - _prosAt > 60000 || !proRows.length) loadMapPros(); else { drawRing(); renderProPins(); }
+  if (Date.now() - _prosAt > 60000 || !proRows.length) loadMapPros(); else { drawRing(); drawOpp(); renderProPins(); }
 }
 
 function fitToRadius(){
@@ -1225,10 +1227,38 @@ function drawRing(){
   pmap.addLayer({ id: 'ring-line', type: 'line', source: 'ring', paint: { 'line-color': '#EA6A12', 'line-width': 2, 'line-dasharray': [2, 2] } });
 }
 
+// ── Sea of opportunity (Roman, 30 Oct 2026) ──
+// Soft orange glow where Yoodle neighbours live and where jobs were posted in the last 90 days.
+// Glow = ALL members with a saved area (Roman, 30 Oct: "every member to glow") + jobs from the last 90 days, grouped by the database into
+// ~2 km cells (never exact homes; a cell with 1 member isn't shown), weight only, around the pro's own location.
+// The glow fades out past neighbourhood zoom, so it can't be read street by street.
+// Total = ALL members within the pro's travel radius (on the map or not), count only, rounded down to 10s
+// (Roman, 30 Oct: "show total members … just don't want to disclose their location"). Under 20 → no number.
+async function loadOpp(km){
+  const { data, error } = await sb.rpc('get_pro_opportunity_glow', { p_radius_km: Math.min(150, Math.max(30, km * 3)) });
+  oppData = error ? null : data;
+  drawOpp(); renderProPins();
+}
+function drawOpp(){
+  if (!pmap || !pmapReady || !oppData) return;
+  const data = { type: 'FeatureCollection', features: (oppData.cells || []).map(c => ({ type: 'Feature',
+    properties: { w: Number(c.w) || 0 }, geometry: { type: 'Point', coordinates: [Number(c.lng), Number(c.lat)] } })) };
+  if (pmap.getSource('opp')) { pmap.getSource('opp').setData(data); return; }
+  pmap.addSource('opp', { type: 'geojson', data });
+  pmap.addLayer({ id: 'opp-heat', type: 'heatmap', source: 'opp', paint: {
+    'heatmap-weight': ['interpolate', ['linear'], ['get', 'w'], 0, 0, 2, 0.6, 10, 0.9, 30, 1],
+    'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 7, 1.4, 10, 2, 13, 2.6],
+    'heatmap-radius': ['interpolate', ['exponential', 2], ['zoom'], 7, 16, 9, 30, 11, 60, 14, 200],
+    'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
+      0, 'rgba(234,106,18,0)', 0.12, 'rgba(253,186,116,0.35)', 0.4, 'rgba(249,140,60,0.55)', 0.75, 'rgba(234,106,18,0.7)', 1, 'rgba(196,86,11,0.82)'],
+    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 11.5, 0.85, 13, 0] } }, pmap.getLayer('ring-line') ? 'ring-line' : undefined);   // above the ring tint, below its dashed edge
+}
+
 async function loadMapPros(){
   _prosAt = Date.now();
   if (!myPro || myPro.lat == null || myPro.lng == null) return;
   const km = myPro.service_radius_km || 25;
+  loadOpp(km);   // runs alongside the pros call
   // Other pros: nearby approved + visible + unexpired only, filtered in the database — same function as yoodle.ca
   // (get_pros_near, 26 Oct 2026). The table itself is no longer readable for other pros' rows.
   // Radius 3x the travel radius (min 30 km) = how far this map lets you pan (fitToRadius).
@@ -1262,7 +1292,10 @@ function renderProPins(){
     el.onclick = ev => { ev.stopPropagation(); showProCard(r, mine); };
     proMarkers.push(new maplibregl.Marker({ element: el }).setLngLat([ln, la]).addTo(pmap));
   });
-  $('map-chip').innerHTML = `${nearby} other pro${nearby === 1 ? '' : 's'} in your area<span class="s">Within your ${km} km travel radius</span>`;
+  const mem = oppData && Number(oppData.members) > 0 ? Number(oppData.members) : 0;
+  const opp = !oppData ? '' : mem ? `<span class="o">${mem.toLocaleString()}+ Yoodle members in your area</span>`
+    : (oppData.cells || []).length ? '<span class="o">Yoodle members in your area</span>' : '';
+  $('map-chip').innerHTML = `${opp}${nearby} other pro${nearby === 1 ? '' : 's'} in your area<span class="s">Within your ${km} km travel radius</span>`;
   $('map-chip').classList.remove('hidden');
 }
 
