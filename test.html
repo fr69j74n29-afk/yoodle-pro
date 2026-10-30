@@ -1151,7 +1151,7 @@ $('btn-save').onclick = async () => {
 const MAP_STYLE = 'https://tiles.openfreemap.org/styles/positron';
 const OSM_RASTER = { version: 8, sources: { osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, attribution: '© OpenStreetMap contributors' } }, layers: [{ id: 'osm', type: 'raster', source: 'osm' }] };
 let pmap = null, pmapReady = false, proMarkers = [], proRows = [], _prosAt = 0;
-let oppData = null;   // "sea of opportunity" shading: get_pro_opportunity_heat (30 Oct 2026)
+let oppData = null;   // "sea of opportunity" shading: get_pro_opportunity_glow (30 Oct 2026)
 
 function _hdrH(){ document.documentElement.style.setProperty('--hdr-h', document.querySelector('header.top').offsetHeight + 'px'); }
 window.addEventListener('resize', _hdrH);
@@ -1230,17 +1230,18 @@ function drawRing(){
 // ── Sea of opportunity (Roman, 30 Oct 2026) ──
 // Soft orange glow where Yoodle neighbours live and where jobs were posted in the last 90 days.
 // Grouped by the database into ~2 km cells (never exact homes; a cell with 1 member isn't shown).
+// Only a weight per cell is returned (no counts), always around the pro's own saved location.
 // Jobs weigh more than members. Pins (HTML markers) always sit above the glow.
+// No numbers are shown to pros (Roman, 30 Oct) — the chip just says "Yoodle members in your area".
 async function loadOpp(km){
-  const { data, error } = await sb.rpc('get_pro_opportunity_heat',
-    { p_lat: myPro.lat, p_lng: myPro.lng, p_radius_km: Math.min(150, Math.max(30, km * 3)), p_count_km: km });
+  const { data, error } = await sb.rpc('get_pro_opportunity_glow', { p_radius_km: Math.min(150, Math.max(30, km * 3)) });
   oppData = error ? null : data;
   drawOpp(); renderProPins();
 }
 function drawOpp(){
   if (!pmap || !pmapReady || !oppData) return;
   const data = { type: 'FeatureCollection', features: (oppData.cells || []).map(c => ({ type: 'Feature',
-    properties: { w: (c.m || 0) + 3 * (c.j || 0) }, geometry: { type: 'Point', coordinates: [Number(c.lng), Number(c.lat)] } })) };
+    properties: { w: Number(c.w) || 0 }, geometry: { type: 'Point', coordinates: [Number(c.lng), Number(c.lat)] } })) };
   if (pmap.getSource('opp')) { pmap.getSource('opp').setData(data); return; }
   pmap.addSource('opp', { type: 'geojson', data });
   pmap.addLayer({ id: 'opp-heat', type: 'heatmap', source: 'opp', paint: {
@@ -1290,7 +1291,7 @@ function renderProPins(){
     el.onclick = ev => { ev.stopPropagation(); showProCard(r, mine); };
     proMarkers.push(new maplibregl.Marker({ element: el }).setLngLat([ln, la]).addTo(pmap));
   });
-  const opp = oppData ? `<span class="o">${Number(oppData.members || 0).toLocaleString()} neighbours · ${Number(oppData.jobs || 0).toLocaleString()} job${oppData.jobs == 1 ? '' : 's'} posted in 90 days</span>` : '';
+  const opp = oppData && (oppData.cells || []).length ? '<span class="o">Yoodle members in your area</span>' : '';
   $('map-chip').innerHTML = `${opp}${nearby} other pro${nearby === 1 ? '' : 's'} in your area<span class="s">Within your ${km} km travel radius</span>`;
   $('map-chip').classList.remove('hidden');
 }
