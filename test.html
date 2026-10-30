@@ -1229,10 +1229,11 @@ function drawRing(){
 
 // ── Sea of opportunity (Roman, 30 Oct 2026) ──
 // Soft orange glow where Yoodle neighbours live and where jobs were posted in the last 90 days.
-// Grouped by the database into ~2 km cells (never exact homes; a cell with 1 member isn't shown).
-// Only a weight per cell is returned (no counts), always around the pro's own saved location.
-// Jobs weigh more than members. Pins (HTML markers) always sit above the glow.
-// No numbers are shown to pros (Roman, 30 Oct) — the chip just says "Yoodle members in your area".
+// Glow = ALL members with a saved area (Roman, 30 Oct: "every member to glow") + jobs from the last 90 days, grouped by the database into
+// ~2 km cells (never exact homes; a cell with 1 member isn't shown), weight only, around the pro's own location.
+// The glow fades out past neighbourhood zoom, so it can't be read street by street.
+// Total = ALL members within the pro's travel radius (on the map or not), count only, rounded down to 10s
+// (Roman, 30 Oct: "show total members … just don't want to disclose their location"). Under 20 → no number.
 async function loadOpp(km){
   const { data, error } = await sb.rpc('get_pro_opportunity_glow', { p_radius_km: Math.min(150, Math.max(30, km * 3)) });
   oppData = error ? null : data;
@@ -1250,7 +1251,7 @@ function drawOpp(){
     'heatmap-radius': ['interpolate', ['exponential', 2], ['zoom'], 7, 16, 9, 30, 11, 60, 14, 200],
     'heatmap-color': ['interpolate', ['linear'], ['heatmap-density'],
       0, 'rgba(234,106,18,0)', 0.12, 'rgba(253,186,116,0.35)', 0.4, 'rgba(249,140,60,0.55)', 0.75, 'rgba(234,106,18,0.7)', 1, 'rgba(196,86,11,0.82)'],
-    'heatmap-opacity': 0.85 } }, pmap.getLayer('ring-line') ? 'ring-line' : undefined);   // above the ring tint, below its dashed edge
+    'heatmap-opacity': ['interpolate', ['linear'], ['zoom'], 11.5, 0.85, 13, 0] } }, pmap.getLayer('ring-line') ? 'ring-line' : undefined);   // above the ring tint, below its dashed edge
 }
 
 async function loadMapPros(){
@@ -1291,7 +1292,9 @@ function renderProPins(){
     el.onclick = ev => { ev.stopPropagation(); showProCard(r, mine); };
     proMarkers.push(new maplibregl.Marker({ element: el }).setLngLat([ln, la]).addTo(pmap));
   });
-  const opp = oppData && (oppData.cells || []).length ? '<span class="o">Yoodle members in your area</span>' : '';
+  const mem = oppData && Number(oppData.members) > 0 ? Number(oppData.members) : 0;
+  const opp = !oppData ? '' : mem ? `<span class="o">${mem.toLocaleString()}+ Yoodle members in your area</span>`
+    : (oppData.cells || []).length ? '<span class="o">Yoodle members in your area</span>' : '';
   $('map-chip').innerHTML = `${opp}${nearby} other pro${nearby === 1 ? '' : 's'} in your area<span class="s">Within your ${km} km travel radius</span>`;
   $('map-chip').classList.remove('hidden');
 }
