@@ -662,7 +662,8 @@ function closeAuth(){ $('auth').classList.remove('open'); }
 $('cta-join').onclick = openAuth;
 
 // ══ PRO PLANS — live (test.html, 29 Oct 2026): pro-checkout / pro-change-plan / pro-portal + get_my_pro_plan ══
-const PLAN_PATH = location.pathname === '/test.html' ? '/test.html' : '/';
+const PLAN_TEST = location.pathname === '/test.html';   // test page: buttons always on (sandbox testers)
+const PLAN_PATH = PLAN_TEST ? '/test.html' : '/';
 const _planParam = new URLSearchParams(location.search).get('plan');
 let _planReturn = ['done','cancel','portal'].includes(_planParam) ? _planParam : null;
 if (_planParam) { try { history.replaceState(null, '', location.pathname); } catch(_) {} }
@@ -699,8 +700,8 @@ async function loadMyPlan(){
 async function applyMyPrices(){
   try {
     const { data } = await sb.rpc('get_pro_plans_for_me');
-    const po = (data || []).find(r => r.plan_key === 'pro'); if (!po) return;
-    const card = document.querySelector('#plans-card .plan.best'); if (!card) return;
+    const po = (data || []).find(r => r.plan_key === 'pro'); if (!po) return false;
+    const card = document.querySelector('#plans-card .plan.best'); if (!card) return true;
     const m = c => '$' + (c / 100).toFixed(2), k = _bill === 'year' ? 'y' : 'm';
     const set = (el, mv, yv) => { if (!el) return; el.dataset.m = mv; el.dataset.y = yv; el.textContent = k === 'y' ? yv : mv; };
     set(card.querySelector('.now'), m(po.month_cents), m(po.year_cents));
@@ -708,13 +709,16 @@ async function applyMyPrices(){
     if (po.founder_price) set(was, m(po.full_month_cents), m(po.full_year_cents)); else if (was) was.classList.add('hidden');
     const tag = card.querySelector('[data-best]'); if (tag && !po.founder_price) tag.classList.add('hidden');
     document.querySelectorAll('#plans-card .founder:not(.spots)').forEach(el => el.classList.toggle('hidden', !po.founder_price));
-  } catch (_) {}
+    return true;
+  } catch (_) { return false; }
 }
 async function renderPlansCard(){
   if (!$('plans-card') || !me) return;
   await loadMyPlan();
-  applyMyPrices();
+  const onSale = await applyMyPrices();
   const p = _myPlan, cur = p ? p.plan_key : 'free';
+  // 30 Oct: on index.html the Choose buttons stay hidden until a paid plan is on sale (pro_plans.on_sale_from) — no page change at launch
+  const gated = !PLAN_TEST && !onSale && !p;
   if (p && !_billSynced) {   // show the pro's own billing period first
     _billSynced = true;
     if (p.billing_interval !== _bill) { const t = document.querySelector('#plans-card .bill button[data-bill="' + (p.billing_interval === 'year' ? 'y' : 'm') + '"]'); if (t) { t.click(); return; } }
@@ -722,10 +726,10 @@ async function renderPlansCard(){
   const okStatus = !p || p.status === 'active' || p.status === 'trialing';
   document.querySelectorAll('#plans-card [data-cur]').forEach(el => el.classList.toggle('hidden', el.dataset.cur !== cur));
   const best = document.querySelector('#plans-card [data-best]'); if (best) best.classList.toggle('hidden', cur === 'pro');
-  $('plans-lead').textContent = p ? 'Your paid plan is below. You can switch or cancel any time.' : 'Choose a plan. You’re on Free today.';
+  $('plans-lead').textContent = p ? 'Your paid plan is below. You can switch or cancel any time.' : gated ? 'Paid plans are coming soon. You’re on Free today.' : 'Choose a plan. You’re on Free today.';
   document.querySelectorAll('#plans-card .plan-go').forEach(b => {
     const k = b.dataset.plan;
-    b.classList.toggle('hidden', !okStatus || (!!p && k === cur && p.billing_interval === _bill));
+    b.classList.toggle('hidden', gated || !okStatus || (!!p && k === cur && p.billing_interval === _bill));
     b.textContent = !p ? 'Choose ' + PLAN_NAME[k] : (k === cur ? 'Switch to ' + (_bill === 'year' ? 'yearly' : 'monthly') : 'Switch to ' + PLAN_NAME[k]);
     delete b.dataset.confirm; delete b.dataset.pdate;
   });
@@ -749,8 +753,10 @@ async function renderPlansCard(){
   if ($('plan-undo')) $('plan-undo').onclick = () => planAction('pro-change-plan', { action: 'undo_cancel' }, null, '✅ Your plan will keep renewing.');
   if ($('plan-cancel')) $('plan-cancel').onclick = e => {
     const b = e.currentTarget;
-    if (!b.dataset.confirm) { b.dataset.confirm = '1'; b.textContent = 'Tap again to cancel — you keep it until ' + _fmtDate(p.current_period_end); return; }
-    planAction('pro-change-plan', { action: 'cancel' }, null, 'Cancelled — you keep your plan until ' + _fmtDate(p.current_period_end) + '.');
+    // 30 Oct: an overdue plan (payment failed) is cancelled right away, not at the end of the period
+    const overdue = p.status === 'past_due' || p.status === 'unpaid';
+    if (!b.dataset.confirm) { b.dataset.confirm = '1'; b.textContent = overdue ? 'Tap again to cancel now — your plan ends today' : 'Tap again to cancel — you keep it until ' + _fmtDate(p.current_period_end); return; }
+    planAction('pro-change-plan', { action: 'cancel' }, null, overdue ? 'Plan cancelled. You\u2019re back on Free.' : 'Cancelled — you keep your plan until ' + _fmtDate(p.current_period_end) + '.');
   };
 }
 async function planAction(fn, body, busyMsg, okMsg){
