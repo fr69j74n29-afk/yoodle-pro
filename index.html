@@ -284,6 +284,34 @@
   #plans-status p{margin:0 0 10px;color:var(--ink2);font-size:14.5px}
   #plans-status .btn{margin-top:8px}
   #plans-status .warn{color:var(--err);font-weight:700}
+  /* ===== Activity: + menu, Your posts, Requests for you (31 Oct 2026) ===== */
+  .act-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 4px}
+  .plus-btn{width:46px;height:46px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:28px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(234,106,18,.35);flex:0 0 auto;display:grid;place-items:center;padding:0}
+  .plus-btn:active{transform:scale(.94)}
+  .act-h{font-size:13px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:20px 0 8px}
+  .post{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:0 0 10px}
+  .post .ptop{display:flex;flex-wrap:wrap;gap:6px}
+  .post .pt-t{font-weight:800;font-size:16.5px;margin:8px 0 2px;word-break:break-word}
+  .post .pt-m{color:var(--ink2);font-size:14px;word-break:break-word}
+  .post .pacts{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .smallbtn.pri{background:var(--accent);border-color:var(--accent);color:#fff}
+  .smallbtn.arm{background:var(--err);border-color:var(--err);color:#fff}
+  .smallbtn:disabled{opacity:.6;cursor:default}
+  .pill.kind{background:#FFF3EA;color:var(--accent-d)}
+  .pill.open{background:#E3F5EC;color:var(--ok)}
+  .sheet.tall{max-height:92vh;overflow-y:auto}
+  .kind-btn{display:flex;gap:12px;align-items:center;width:100%;text-align:left;border:1.5px solid var(--border);background:#fff;border-radius:12px;padding:14px;margin:0 0 10px;font:inherit;cursor:pointer;color:var(--ink)}
+  .kind-btn .e{font-size:26px;line-height:1}
+  .kind-btn b{display:block;font-size:16px}
+  .kind-btn .d{color:var(--ink2);font-size:13.5px}
+  .kind-btn:disabled{opacity:.55;cursor:default}
+  .apl{border:1px solid var(--border);border-radius:12px;padding:12px;margin:0 0 10px}
+  .apl .top{display:flex;gap:10px;align-items:center}
+  .apl .av{width:42px;height:42px;border-radius:50%;background:var(--ink);color:#fff;display:grid;place-items:center;font-weight:800;flex:0 0 auto}
+  .apl .nm{font-weight:800}
+  .apl .rt{color:#B7791F;font-weight:800;font-size:13.5px}
+  .apl .bio{color:var(--ink2);font-size:14px;margin-top:8px;white-space:pre-line;word-break:break-word}
+  .apl .pacts{display:flex;gap:8px;margin-top:10px}
 </style>
 </head>
 <body>
@@ -501,9 +529,13 @@
       <div class="pcardm hidden" id="pcardm"></div>
     </div>
 
-    <!-- ACTIVITY: job inquiries -->
+    <!-- ACTIVITY: your posts (+ menu) + requests for you (31 Oct 2026) -->
     <div id="v-activity" class="page hidden">
-      <h1 class="sec-title">Job inquiries</h1>
+      <div class="act-top"><h1 class="sec-title" style="margin:0">Activity</h1>
+        <button type="button" class="plus-btn" id="act-plus" aria-label="New post" title="New post">＋</button></div>
+      <h2 class="act-h">Your posts</h2>
+      <div id="posts-list"></div>
+      <h2 class="act-h">Requests for you</h2>
       <p class="sec-lead">Homeowners who contacted you. Tap one to reply.</p>
       <div id="act-list"></div>
     </div>
@@ -606,6 +638,57 @@
       <span>I'm 18 or older and agree that Stripe may process my ID and a selfie, including biometric data from my face, to verify my identity, and that Stripe shares the first and last name on my ID with Yoodle (kept private). <a href="https://yoodle.ca/privacy#id-verification" target="_blank" rel="noopener">Privacy</a> · <a href="https://yoodle.ca/terms#id-verification" target="_blank" rel="noopener">Terms</a></span></label>
     <button class="btn" id="idv-go" type="button" disabled style="background:var(--idv);color:#fff">Continue to payment</button>
     <p class="fine">Non-refundable · 3 tries included. Next: Stripe's secure payment page, then Stripe's ID check.</p>
+  </div>
+</div>
+
+<!-- ===== + menu: what to post (31 Oct 2026) ===== -->
+<div class="scrim" id="plus-sheet" role="dialog" aria-modal="true" aria-labelledby="plus-title">
+  <div class="sheet">
+    <button class="x" id="plus-close" type="button" aria-label="Close">×</button>
+    <h2 id="plus-title">Hire help</h2>
+    <p class="sub">Post a job for helpers near you. It shows as a job pin on the Yoodle map. Free for Pros.</p>
+    <button type="button" class="kind-btn" data-kind="day_help"><span class="e">🧰</span><span><b>Day help</b><span class="d">A one-off job — a helper for a day</span></span></button>
+    <button type="button" class="kind-btn" disabled><span class="e">🕐</span><span><b>Part-time <span class="soon">Coming soon</span></b><span class="d">Regular hours each week</span></span></button>
+    <button type="button" class="kind-btn" disabled><span class="e">💼</span><span><b>Full-time <span class="soon">Coming soon</span></b><span class="d">A full-time hire</span></span></button>
+  </div>
+</div>
+
+<!-- ===== Post form (new + edit) ===== -->
+<div class="scrim" id="post-sheet" role="dialog" aria-modal="true" aria-labelledby="post-title">
+  <div class="sheet tall">
+    <button class="x" id="post-close" type="button" aria-label="Close">×</button>
+    <h2 id="post-title">Day help</h2>
+    <p class="sub" id="post-sub">Shows on the Yoodle map for 14 days. Helpers tap I'm Interested and you pick one.</p>
+    <div class="field"><label class="f" for="po-title">What's the job?</label>
+      <input class="in" id="po-title" maxlength="80" placeholder="e.g. Helper for a bathroom demo"></div>
+    <div class="field"><label class="f" for="po-when">When</label>
+      <input class="in" id="po-when" maxlength="60" placeholder="e.g. Sat Nov 7, 8 am – 4 pm"></div>
+    <div class="field"><label class="f" for="po-desc">Details</label>
+      <textarea class="in" id="po-desc" maxlength="1000" placeholder="What the helper will do, what to bring, anything they should know"></textarea></div>
+    <div class="row2" style="grid-template-columns:1fr 1.5fr">
+      <div class="field"><label class="f" for="po-pay">Pay for the day ($)</label>
+        <input class="in" id="po-pay" type="number" inputmode="numeric" min="1" max="10000" step="1" placeholder="150"></div>
+      <div class="field"><label class="f" for="po-cat">Category</label>
+        <select class="in" id="po-cat"></select></div>
+    </div>
+    <div class="field"><label class="f" for="po-loc">Job site address</label>
+      <input class="in" id="po-loc" autocomplete="off" placeholder="Start typing the street…">
+      <div class="sugg hidden" id="po-sugg"></div>
+      <button type="button" class="smallbtn" id="po-biz" style="margin-top:8px">Use my business address</button>
+      <div class="locok hidden" id="po-locok"></div>
+      <p class="hint" style="margin:6px 0 0;color:var(--muted);font-size:13px">Pick from the suggestions. The map pin is shown near this spot, not on it.</p></div>
+    <button class="btn btn-primary" id="po-go" type="button">Post</button>
+    <div class="msg" id="msg-post"></div>
+  </div>
+</div>
+
+<!-- ===== Review applicants ===== -->
+<div class="scrim" id="rev-sheet" role="dialog" aria-modal="true" aria-labelledby="rev-title">
+  <div class="sheet tall">
+    <button class="x" id="rev-close" type="button" aria-label="Close">×</button>
+    <h2 id="rev-title">Interested helpers</h2>
+    <p class="sub" id="rev-sub"></p>
+    <div id="rev-list"></div>
   </div>
 </div>
 
@@ -857,7 +940,8 @@ function showLanding(){
   $('app').classList.add('hidden'); $('landing').classList.remove('hidden');
   $('hdr-btn').classList.remove('hidden'); $('hdr-btn').textContent = 'Sign in';
   closeSettings();
-  setNav(false); $('chat').classList.add('hidden'); clearInterval(_chatPoll); currentTab = null; convs = []; proRows = []; _prosAt = 0; oppData = null;
+  setNav(false); $('chat').classList.add('hidden'); clearInterval(_chatPoll); currentTab = null; convs = []; proRows = []; _prosAt = 0; oppData = null; myPosts = []; postApps = {}; postDoers = {};
+  ['plus-sheet','post-sheet','rev-sheet'].forEach(id => $(id).classList.remove('open'));
 }
 
 /* ---------- helpers ---------- */
@@ -1324,7 +1408,7 @@ function goTab(t){
   currentTab = t;
   document.querySelectorAll('#bnav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   if (t === 'map') { show('v-map'); openMap(); }
-  else if (t === 'activity') { show('v-activity'); renderActivity(); }
+  else if (t === 'activity') { show('v-activity'); renderActivity(); renderPosts(); loadPosts(); }
   else if (t === 'messages') { show('v-messages'); renderMessages(); }
   else openSetup(true);   // profile = same form as sign-up + account tools
 }
@@ -1366,9 +1450,284 @@ function renderActivity(){
   const list = convs.filter(c => inquiryIds.has(c.task_id));
   const box = $('act-list');
   box.innerHTML = list.length ? list.map(c => convItem(c, true)).join('')
-    : '<div class="empty"><div class="big">📭</div><b>No inquiries yet</b><br>When a homeowner contacts you from the Yoodle map, it shows up here.</div>';
+    : '<div class="empty"><div class="big">📭</div><b>No requests yet</b><br>When a homeowner contacts you from the Yoodle map, it shows up here.</div>';
   bindItems(box);
 }
+
+/* ---------- Your posts: contractor + menu (31 Oct 2026, Phase 1 = Day help) ----------
+   Posts are ordinary tasks (type 'job') tagged tasks.hire_kind, so pins, I'm Interested, expiry emails,
+   renew links and new-job pushes on yoodle.ca work unchanged. DB trigger guard_hire_post: non-suspended pros only,
+   never a url (yoodle.ca would show it as an agency job), max 10 open/assigned. Same calls as yoodle.ca
+   assignApplicant / jobAction (complete + cancel) / unclaimJob / saveEdit. Free for all pros (Roman, 31 Oct). */
+const HIRE_LABEL = { day_help: 'Day help', part_time: 'Part-time', full_time: 'Full-time' };
+const POST_DAYS = 14, POST_CAP = 10;
+const CAT_FALLBACK = ['General Labour','Moving & Lifting','Handyman','Cleaning','Yard & Garden','Snow & Seasonal','Other'];
+let myPosts = [], postApps = {}, postDoers = {}, _postsAt = 0, _postsErr = false;
+let postEdit = null, postKind = 'day_help', postLoc = null, _cats = null;
+
+const postLeft = t => t.expires_at ? Math.ceil((new Date(t.expires_at) - Date.now()) / 864e5) : null;
+const postState = t => (t.status === 'open' && t.expires_at && new Date(t.expires_at) <= new Date()) ? 'expired' : t.status;
+function splitWhen(d){ const m = /^📅 ([^\n]*)\n\n?([\s\S]*)$/.exec(d || ''); return m ? { when: m[1], desc: m[2] } : { when: '', desc: d || '' }; }
+function joinWhen(when, desc){ return when ? '📅 ' + when + '\n\n' + desc : desc; }
+
+async function loadPosts(){
+  _postsAt = Date.now();
+  const { data, error } = await sb.from('tasks')
+    .select('id,title,description,price,category,address,lat,lng,status,doer_id,expires_at,created_at,completed_at,cancelled_at,hire_kind')
+    .eq('poster_id', me.id).not('hire_kind', 'is', null).order('created_at', { ascending: false }).limit(50);
+  if (error) { console.warn('loadPosts', error); _postsErr = true; renderPosts(); return; }
+  _postsErr = false;
+  const cut = Date.now() - 30 * 864e5;   // closed posts stay visible for 30 days
+  myPosts = (data || []).filter(t => t.status === 'open' || t.status === 'claimed'
+    || new Date(t.cancelled_at || t.completed_at || t.expires_at || t.created_at).getTime() > cut);
+  const openIds = myPosts.filter(t => t.status === 'open').map(t => t.id);
+  const doerIds = [...new Set(myPosts.filter(t => t.status !== 'open' && t.doer_id).map(t => t.doer_id))];
+  postApps = {};
+  await Promise.all([
+    openIds.length ? sb.from('applications').select('task_id').in('task_id', openIds).eq('status', 'pending')
+      .then(({ data }) => (data || []).forEach(a => postApps[a.task_id] = (postApps[a.task_id] || 0) + 1)) : null,
+    doerIds.length ? sb.from('profiles').select('id,name').in('id', doerIds)
+      .then(({ data }) => (data || []).forEach(p => postDoers[p.id] = p.name)) : null
+  ]);
+  if (currentTab === 'activity') renderPosts();
+}
+function refreshActivity(){ loadPosts(); loadConvs(); }   // the one refresh for everything on Activity
+
+function renderPosts(){
+  const box = $('posts-list');
+  $('act-plus').classList.toggle('hidden', !!(myPro && myPro.status === 'suspended'));
+  if (_postsErr && !myPosts.length) { box.innerHTML = '<div class="empty">Couldn’t load your posts. <button type="button" class="smallbtn" id="posts-retry">Try again</button></div>'; $('posts-retry').onclick = loadPosts; return; }
+  if (!myPosts.length) { box.innerHTML = '<div class="empty"><div class="big">🧰</div><b>Need a hand on a job?</b><br>Tap <b>＋</b> to post Day help. Helpers near the job see it on the Yoodle map.</div>'; return; }
+  box.innerHTML = myPosts.map(t => {
+    const st = postState(t), n = postApps[t.id] || 0, left = postLeft(t), sw = splitWhen(t.description);
+    const pill = st === 'open' ? `<span class="pill open">Open · ${left <= 1 ? 'last day' : left + 'd left'}</span>`
+      : st === 'claimed' ? `<span class="pill act">Assigned to ${esc((postDoers[t.doer_id] || 'a helper').split(' ')[0])}</span>`
+      : st === 'completed' ? '<span class="pill done">Done</span>'
+      : st === 'expired' ? '<span class="pill done">Expired</span>' : '<span class="pill done">Cancelled</span>';
+    const meta = [t.price ? '$' + Number(t.price).toLocaleString('en-CA') : '', sw.when, areaLabel(t.address)].filter(Boolean).join(' · ');
+    let acts = '';
+    if (st === 'open') acts = `<button type="button" class="smallbtn${n ? ' pri' : ''}" data-act="review" data-id="${esc(t.id)}">${n ? 'Review (' + n + ')' : 'No one yet'}</button>`
+      + `<button type="button" class="smallbtn" data-act="edit" data-id="${esc(t.id)}">Edit</button>`
+      + `<button type="button" class="smallbtn" data-act="cancel" data-id="${esc(t.id)}">Cancel</button>`;
+    else if (st === 'claimed') acts = `<button type="button" class="smallbtn pri" data-act="chat" data-id="${esc(t.id)}">Chat</button>`
+      + `<button type="button" class="smallbtn" data-act="done" data-id="${esc(t.id)}">Mark done</button>`
+      + `<button type="button" class="smallbtn" data-act="unassign" data-id="${esc(t.id)}">Unassign</button>`;
+    return `<div class="post"><div class="ptop"><span class="pill kind">${esc(HIRE_LABEL[t.hire_kind] || 'Post')}</span>${pill}</div>
+      <div class="pt-t">${esc(t.title)}</div><div class="pt-m">${esc(meta)}</div>${acts ? '<div class="pacts">' + acts + '</div>' : ''}</div>`;
+  }).join('');
+}
+
+// two taps, no browser pop-up (same pattern as Decline)
+function armTap(b, label, fn){
+  if (!b.dataset.arm) {
+    b.dataset.arm = '1'; b.dataset.lbl = b.textContent; b.classList.add('arm'); b.textContent = label;
+    setTimeout(() => { if (b.dataset.arm) { delete b.dataset.arm; b.classList.remove('arm'); b.textContent = b.dataset.lbl; } }, 4000);
+    return;
+  }
+  delete b.dataset.arm; b.classList.remove('arm'); b.textContent = b.dataset.lbl;
+  fn();
+}
+$('posts-list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-act]'); if (!b || b.disabled) return;
+  const t = myPosts.find(x => x.id === b.dataset.id); if (!t) return;
+  const a = b.dataset.act;
+  if (a === 'review') openReview(t);
+  else if (a === 'edit') openPost(t.hire_kind, t);
+  else if (a === 'chat') openPostChat(t, t.doer_id);
+  else if (a === 'cancel') armTap(b, 'Tap to cancel', () => cancelPost(t, b));
+  else if (a === 'done') armTap(b, 'Tap to confirm', () => completePost(t, b));
+  else if (a === 'unassign') armTap(b, 'Tap to unassign', () => unassignPost(t, b));
+});
+
+async function myName(){ return (myProfile && myProfile.name) || 'The pro'; }
+async function convFor(taskId, applicantId){
+  const { data } = await sb.from('conversations').select('id').eq('task_id', taskId).eq('applicant_id', applicantId).eq('status', 'active').maybeSingle();
+  return data ? data.id : null;
+}
+async function sysMsg(convId, taskId, to, body){ if (convId) await sb.from('messages').insert({ conversation_id: convId, task_id: taskId, sender_id: me.id, receiver_id: to, body }); }
+async function openPostChat(t, applicantId){
+  let c = convs.find(x => x.task_id === t.id && x.applicant_id === applicantId);
+  if (!c) { await loadConvs(); c = convs.find(x => x.task_id === t.id && x.applicant_id === applicantId); }
+  if (!c) return toast('No chat yet with this helper.');
+  $('rev-sheet').classList.remove('open');
+  openChat(c);
+}
+
+// yoodle.ca jobAction (poster, open) — cancel + tell pending applicants
+async function cancelPost(t, b){
+  b.disabled = true;
+  const { data, error } = await sb.from('tasks').update({ status: 'cancelled' }).eq('id', t.id).eq('poster_id', me.id).select('id');
+  if (error || !data || !data.length) { b.disabled = false; return toast('Couldn’t cancel. Please try again.'); }
+  const { data: apps } = await sb.from('applications').select('applicant_id').eq('task_id', t.id).eq('status', 'pending');
+  for (const a of apps || []) {
+    const cid = await convFor(t.id, a.applicant_id);
+    if (cid) { await sysMsg(cid, t.id, a.applicant_id, 'This job has been cancelled by the poster.'); await sb.from('conversations').update({ status: 'archived' }).eq('id', cid); }
+  }
+  await sb.from('applications').update({ status: 'rejected' }).eq('task_id', t.id).eq('status', 'pending');
+  toast('🗑️ Post cancelled'); refreshActivity();
+}
+// yoodle.ca jobAction (poster, claimed) — Mark complete (rating stays on yoodle.ca for now)
+async function completePost(t, b){
+  b.disabled = true;
+  const { data: cur } = await sb.from('tasks').select('status').eq('id', t.id).maybeSingle();
+  if (cur && cur.status === 'completed') { toast('✅ Already done'); return refreshActivity(); }
+  const { data, error } = await sb.from('tasks').update({ status: 'completed' }).eq('id', t.id).eq('poster_id', me.id).select('id');
+  if (error || !data || !data.length) { b.disabled = false; return toast('Couldn’t save. Please try again.'); }
+  toast('✅ Marked done'); refreshActivity();
+}
+// yoodle.ca unclaimJob — back to open, helper told in chat
+async function unassignPost(t, b){
+  b.disabled = true;
+  const doer = t.doer_id, nm = await myName();
+  const { data, error } = await sb.from('tasks').update({ status: 'open', doer_id: null }).eq('id', t.id).eq('poster_id', me.id).select('id');
+  if (error || !data || !data.length) { b.disabled = false; return toast('Couldn’t unassign. Please try again.'); }
+  if (doer) {
+    await sb.from('applications').update({ status: 'withdrawn' }).eq('task_id', t.id).eq('applicant_id', doer);
+    const cid = await convFor(t.id, doer);
+    if (cid) { await sysMsg(cid, t.id, doer, `↩️ ${nm} unclaimed this job. It's back to open.`); await sb.from('conversations').update({ status: 'archived' }).eq('id', cid); }
+  }
+  toast('↩️ Back to open'); refreshActivity();
+}
+
+/* review applicants — yoodle.ca openApplicants / assignApplicant */
+let revTask = null;
+async function openReview(t){
+  revTask = t;
+  $('rev-sub').textContent = t.title;
+  $('rev-list').innerHTML = '<p class="muted">Loading…</p>';
+  $('rev-sheet').classList.add('open');
+  const { data, error } = await sb.from('applications')
+    .select('id,applicant_id,status,created_at,profiles!applications_applicant_id_fkey(id,name,rating,bio,avatar_color)')
+    .eq('task_id', t.id).eq('status', 'pending').order('created_at', { ascending: true });
+  if (revTask !== t) return;
+  if (error) { $('rev-list').innerHTML = '<p class="muted">Couldn’t load. Please try again.</p>'; return; }
+  $('rev-list').innerHTML = (data || []).length ? data.map(a => {
+    const p = a.profiles || {}, nm = p.name || 'Someone';
+    return `<div class="apl"><div class="top"><div class="av" style="background:${/^#[0-9a-f]{3,8}$/i.test(p.avatar_color || '') ? p.avatar_color : 'var(--ink)'}">${esc(nm.trim().charAt(0).toUpperCase() || '?')}</div>
+      <div><div class="nm">${esc(nm)}</div><div class="rt">${p.rating ? '★ ' + esc(p.rating) : 'New'}</div></div></div>
+      ${p.bio ? `<div class="bio">${esc(p.bio)}</div>` : ''}
+      <div class="pacts"><button type="button" class="smallbtn" data-ract="chat" data-u="${esc(a.applicant_id)}">Chat</button>
+      <button type="button" class="smallbtn pri" data-ract="assign" data-a="${esc(a.id)}" data-u="${esc(a.applicant_id)}" data-n="${esc(nm)}">Assign</button></div></div>`;
+  }).join('') : '<div class="empty">No one is waiting right now.</div>';
+}
+$('rev-list').addEventListener('click', e => {
+  const b = e.target.closest('button[data-ract]'); if (!b || b.disabled || !revTask) return;
+  if (b.dataset.ract === 'chat') openPostChat(revTask, b.dataset.u);
+  else armTap(b, 'Tap to assign', () => assignHelper(revTask, b.dataset.a, b.dataset.u, b.dataset.n, b));
+});
+$('rev-close').onclick = () => { $('rev-sheet').classList.remove('open'); revTask = null; };
+async function assignHelper(t, appId, uid, nm, b){
+  b.disabled = true;
+  const { data, error } = await sb.from('tasks').update({ status: 'claimed', doer_id: uid }).eq('id', t.id).eq('poster_id', me.id).eq('status', 'open').select('id');
+  if (error || !data || !data.length) { b.disabled = false; return toast(error && /test accounts/i.test(error.message || '') ? 'Test accounts can only work with other test accounts.' : 'Couldn’t assign. Please try again.'); }
+  await sb.from('applications').update({ status: 'assigned' }).eq('id', appId);
+  const { data: others } = await sb.from('applications').select('id,applicant_id').eq('task_id', t.id).eq('status', 'pending').neq('id', appId);
+  for (const o of others || []) {
+    await sb.from('applications').update({ status: 'rejected' }).eq('id', o.id);
+    await sysMsg(await convFor(t.id, o.applicant_id), t.id, o.applicant_id, 'Thanks for your interest — someone else was selected for this job.');
+  }
+  await sb.rpc('archive_losing_conversations', { p_task_id: t.id, p_keep_applicant_id: uid });
+  await sysMsg(await convFor(t.id, uid), t.id, uid, `🎉 Great news, ${nm}! You've been selected for this job. Let's coordinate the details.`);
+  $('rev-sheet').classList.remove('open'); revTask = null;
+  toast(`✅ ${nm} assigned!`); refreshActivity();
+}
+
+/* + menu and post form */
+$('act-plus').onclick = () => {
+  if (myPosts.filter(t => t.status === 'open' || t.status === 'claimed').length >= POST_CAP) return toast(`You have ${POST_CAP} open posts. Close or cancel one first.`);
+  $('plus-sheet').classList.add('open');
+};
+$('plus-close').onclick = () => $('plus-sheet').classList.remove('open');
+document.querySelectorAll('#plus-sheet .kind-btn[data-kind]').forEach(b => b.onclick = () => { $('plus-sheet').classList.remove('open'); openPost(b.dataset.kind, null); });
+$('post-close').onclick = () => $('post-sheet').classList.remove('open');
+
+async function loadCats(){
+  if (_cats) return _cats;
+  const { data } = await sb.from('helper_categories').select('name,emoji,active,sort_order').eq('active', true).order('sort_order');
+  const list = (data || []).filter(c => c.name);
+  _cats = list.length ? list.filter(c => c.name !== 'Other').concat(list.filter(c => c.name === 'Other')) : CAT_FALLBACK.map(n => ({ name: n, emoji: '' }));
+  return _cats;
+}
+function setPostLoc(l){
+  postLoc = l;
+  $('po-sugg').classList.add('hidden');
+  $('po-locok').textContent = l ? '✓ ' + l.address : ''; $('po-locok').classList.toggle('hidden', !l);
+  if (l) { $('po-loc').value = l.address; setMsg('msg-post', ''); }
+}
+async function openPost(kind, t){
+  postKind = kind; postEdit = t || null;
+  $('post-title').textContent = (t ? 'Edit ' : '') + (HIRE_LABEL[kind] || 'Post');
+  $('post-sub').textContent = t ? 'Changes show on the Yoodle map right away.' : `Shows on the Yoodle map for ${POST_DAYS} days. Helpers tap I'm Interested and you pick one.`;
+  $('po-go').textContent = t ? 'Save changes' : 'Post'; $('po-go').disabled = false;
+  const sw = splitWhen(t ? t.description : '');
+  $('po-title').value = t ? t.title : ''; $('po-when').value = sw.when; $('po-desc').value = sw.desc;
+  $('po-pay').value = t && t.price ? Math.round(t.price) : '';
+  $('po-sugg').classList.add('hidden'); setMsg('msg-post', '');
+  setPostLoc(t ? { address: t.address || '', lat: t.lat, lng: t.lng } : null);
+  if (!t) $('po-loc').value = '';
+  $('po-biz').classList.toggle('hidden', !(myPro && myPro.address && myPro.lat != null));
+  const cats = await loadCats(), cur = t ? t.category : 'General Labour';
+  const opts = cats.some(c => c.name === cur) ? cats : cats.concat([{ name: cur, emoji: '' }]);
+  $('po-cat').innerHTML = opts.map(c => `<option value="${esc(c.name)}"${c.name === cur ? ' selected' : ''}>${esc((c.emoji ? c.emoji + ' ' : '') + c.name)}</option>`).join('');
+  $('post-sheet').classList.add('open');
+}
+$('po-biz').onclick = () => { if (myPro && myPro.address) setPostLoc({ address: myPro.address, lat: myPro.lat, lng: myPro.lng }); };
+
+let _poT = null, _poSeq = 0;
+$('po-loc').addEventListener('input', () => {
+  postLoc = null; $('po-locok').classList.add('hidden');
+  clearTimeout(_poT);
+  const q = $('po-loc').value.trim();
+  if (q.length < 4) { $('po-sugg').classList.add('hidden'); return; }
+  _poT = setTimeout(() => searchJobLoc(q), 450);   // Nominatim: max ~1 request/second
+});
+async function searchJobLoc(q){
+  const seq = ++_poSeq;
+  try {
+    const r = await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=ca&limit=6&q=' + encodeURIComponent(q), { headers: { 'Accept-Language': 'en' } });
+    const items = (await r.json()).filter(it => !isVagueItem(it));   // street level, house number optional (like yoodle.ca Post a Job)
+    if (seq !== _poSeq) return;
+    const box = $('po-sugg');
+    if (!items.length) { box.classList.add('hidden'); setMsg('msg-post', 'No matches. Try the street name and city.', 'err'); return; }
+    setMsg('msg-post', '');
+    box.innerHTML = items.map((it, i) => `<button type="button" data-i="${i}">${esc(fmtAddr(it) || it.display_name)}</button>`).join('');
+    box.querySelectorAll('button').forEach(b => b.onclick = () => { const it = items[+b.dataset.i]; setPostLoc({ address: fmtAddr(it) || it.display_name, lat: exact6(+it.lat), lng: exact6(+it.lon) }); });
+    box.classList.remove('hidden');
+  } catch(_) { setMsg('msg-post', 'Address search is unavailable right now. Try again in a moment.', 'err'); }
+}
+
+$('po-go').onclick = async () => {
+  const b = $('po-go'); if (b.disabled) return;
+  const title = $('po-title').value.trim(), when = $('po-when').value.trim(), desc = $('po-desc').value.trim();
+  const pay = Math.round(+$('po-pay').value), cat = $('po-cat').value;
+  const fail = (m, el) => { setMsg('msg-post', m, 'err'); if (el) el.focus({ preventScroll: false }); };
+  if (title.length < 3) return fail('Add a short title for the job.', $('po-title'));
+  if (desc.length < 5) return fail('Add a few details about the job.', $('po-desc'));
+  if (!(pay >= 1 && pay <= 10000)) return fail('Add the pay for the day ($1 – $10,000).', $('po-pay'));
+  if (!postLoc || postLoc.lat == null) return fail('Pick the job site address from the suggestions.', $('po-loc'));
+  const row = { title, description: joinWhen(when, desc), price: pay, category: cat || 'General Labour',
+                address: postLoc.address, lat: postLoc.lat, lng: postLoc.lng };
+  b.disabled = true; setMsg('msg-post', postEdit ? 'Saving…' : 'Posting…');
+  let res;
+  if (postEdit) {
+    const moved = postLoc.lat !== postEdit.lat || postLoc.lng !== postEdit.lng;
+    if (moved) row.location_verified = false; else { delete row.address; delete row.lat; delete row.lng; }
+    res = await sb.from('tasks').update(row).eq('id', postEdit.id).eq('poster_id', me.id).select('id');
+  } else {
+    res = await sb.from('tasks').insert({ ...row, poster_id: me.id, status: 'open', show_on_map: true, location_verified: false,
+      expires_at: new Date(Date.now() + POST_DAYS * 864e5).toISOString(), hire_kind: postKind }).select('id');
+  }
+  b.disabled = false;
+  if (res.error || !res.data || !res.data.length) {
+    const m = (res.error && res.error.message) || '';
+    return setMsg('msg-post', /10 open posts/i.test(m) ? m : /words/i.test(m) ? 'Your post contains words that aren’t allowed on Yoodle.'
+      : /suspend/i.test(m) ? 'Your account is suspended.' : /Pro accounts/i.test(m) ? 'Only Pro accounts can post this.'
+      : postEdit ? 'Couldn’t save changes. Please try again.' : 'Couldn’t post. Please try again.', 'err');
+  }
+  $('post-sheet').classList.remove('open');
+  toast(postEdit ? '✅ Post updated' : `🎉 Posted! Live on the Yoodle map for ${POST_DAYS} days.`);
+  postEdit = null; refreshActivity();
+};
 function renderMessages(){
   const box = $('msg-list');
   box.innerHTML = convs.length ? convs.map(c => convItem(c, false)).join('')
