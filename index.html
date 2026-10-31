@@ -285,9 +285,11 @@
   #plans-status .btn{margin-top:8px}
   #plans-status .warn{color:var(--err);font-weight:700}
   /* ===== Activity: + menu, Your posts, Requests for you (31 Oct 2026) ===== */
-  .act-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 4px}
-  .plus-btn{width:46px;height:46px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:28px;font-weight:800;line-height:1;cursor:pointer;box-shadow:0 2px 8px rgba(234,106,18,.35);flex:0 0 auto;display:grid;place-items:center;padding:0}
-  .plus-btn:active{transform:scale(.94)}
+  /* centre + in bottom nav (same as yoodle.ca, 31 Oct 2026) */
+  .bnav button.nav-plus{justify-content:center}
+  .bnav .nav-plus .pc{width:46px;height:46px;border-radius:50%;background:var(--accent);display:grid;place-items:center;margin:-10px 0 -2px;box-shadow:0 2px 8px rgba(234,106,18,.35)}
+  .bnav .nav-plus .pc svg{width:24px;height:24px}
+  .bnav .nav-plus:active .pc{transform:scale(.94)}
   .act-h{font-size:13px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);margin:20px 0 8px}
   .post{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin:0 0 10px}
   .post .ptop{display:flex;flex-wrap:wrap;gap:6px}
@@ -531,8 +533,7 @@
 
     <!-- ACTIVITY: your posts (+ menu) + requests for you (31 Oct 2026) -->
     <div id="v-activity" class="page hidden">
-      <div class="act-top"><h1 class="sec-title" style="margin:0">Activity</h1>
-        <button type="button" class="plus-btn" id="act-plus" aria-label="New post" title="New post">＋</button></div>
+      <h1 class="sec-title">Activity</h1>
       <h2 class="act-h">Your posts</h2>
       <div id="posts-list"></div>
       <h2 class="act-h">Requests for you</h2>
@@ -554,6 +555,7 @@
 <nav class="bnav hidden" id="bnav"><div class="in-wrap">
   <button type="button" data-tab="map"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>Map</button>
   <button type="button" data-tab="activity"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Activity</button>
+  <button type="button" class="nav-plus" id="act-plus" aria-label="Hire help" title="Hire help"><span class="pc"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span></button>
   <button type="button" data-tab="messages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Messages<span class="badge hidden" id="msg-badge"></span></button>
   <button type="button" data-tab="profile"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
 </div></nav>
@@ -1406,13 +1408,13 @@ function showProCard(r, mine){
 let currentTab = null;
 function goTab(t){
   currentTab = t;
-  document.querySelectorAll('#bnav button').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+  document.querySelectorAll('#bnav button[data-tab]').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
   if (t === 'map') { show('v-map'); openMap(); }
   else if (t === 'activity') { show('v-activity'); renderActivity(); renderPosts(); loadPosts(); }
   else if (t === 'messages') { show('v-messages'); renderMessages(); }
   else openSetup(true);   // profile = same form as sign-up + account tools
 }
-document.querySelectorAll('#bnav button').forEach(b => b.onclick = () => { goTab(b.dataset.tab); if (b.dataset.tab === 'activity' || b.dataset.tab === 'messages') loadConvs(); });
+document.querySelectorAll('#bnav button[data-tab]').forEach(b => b.onclick = () => { goTab(b.dataset.tab); if (b.dataset.tab === 'activity' || b.dataset.tab === 'messages') loadConvs(); });
 
 /* ---------- conversations (shared with yoodle.ca) ---------- */
 let convs = [], inquiryIds = new Set(), _convAt = 0;
@@ -1461,7 +1463,9 @@ function renderActivity(){
    assignApplicant / jobAction (complete + cancel) / unclaimJob / saveEdit. Free for all pros (Roman, 31 Oct). */
 const HIRE_LABEL = { day_help: 'Day help', part_time: 'Part-time', full_time: 'Full-time' };
 const POST_DAYS = 14, POST_CAP = 10;
-const CAT_FALLBACK = ['General Labour','Moving & Lifting','Handyman','Cleaning','Yard & Garden','Snow & Seasonal','Other'];
+// Day help categories: only work a contractor would hire a helper for (Roman, 31 Oct 2026) — no Pet Care, Childcare, Tutoring, Tech Help, Errands
+const CAT_ALLOW = ['General Labour','Moving & Lifting','Handyman','Cleaning','Yard & Garden','Snow & Seasonal','Other'];
+const CAT_FALLBACK = CAT_ALLOW;
 let myPosts = [], postApps = {}, postDoers = {}, _postsAt = 0, _postsErr = false;
 let postEdit = null, postKind = 'day_help', postLoc = null, _cats = null;
 
@@ -1495,7 +1499,6 @@ function refreshActivity(){ loadPosts(); loadConvs(); }   // the one refresh for
 
 function renderPosts(){
   const box = $('posts-list');
-  $('act-plus').classList.toggle('hidden', !!(myPro && myPro.status === 'suspended'));
   if (_postsErr && !myPosts.length) { box.innerHTML = '<div class="empty">Couldn’t load your posts. <button type="button" class="smallbtn" id="posts-retry">Try again</button></div>'; $('posts-retry').onclick = loadPosts; return; }
   if (!myPosts.length) { box.innerHTML = '<div class="empty"><div class="big">🧰</div><b>Need a hand on a job?</b><br>Tap <b>＋</b> to post Day help. Helpers near the job see it on the Yoodle map.</div>'; return; }
   box.innerHTML = myPosts.map(t => {
@@ -1633,7 +1636,9 @@ async function assignHelper(t, appId, uid, nm, b){
 }
 
 /* + menu and post form */
-$('act-plus').onclick = () => {
+$('act-plus').onclick = async () => {
+  if (myPro && myPro.status === 'suspended') return toast('Your Pro listing is suspended. Contact support@yoodle.ca.');
+  if (!_postsAt) await loadPosts();
   if (myPosts.filter(t => t.status === 'open' || t.status === 'claimed').length >= POST_CAP) return toast(`You have ${POST_CAP} open posts. Close or cancel one first.`);
   $('plus-sheet').classList.add('open');
 };
@@ -1645,7 +1650,8 @@ async function loadCats(){
   if (_cats) return _cats;
   const { data } = await sb.from('helper_categories').select('name,emoji,active,sort_order').eq('active', true).order('sort_order');
   const list = (data || []).filter(c => c.name);
-  _cats = list.length ? list.filter(c => c.name !== 'Other').concat(list.filter(c => c.name === 'Other')) : CAT_FALLBACK.map(n => ({ name: n, emoji: '' }));
+  const ok = CAT_ALLOW.map(n => list.find(c => c.name === n)).filter(Boolean);   // in CAT_ALLOW order, only if active in helper_categories
+  _cats = ok.length ? ok : CAT_FALLBACK.map(n => ({ name: n, emoji: '' }));
   return _cats;
 }
 function setPostLoc(l){
