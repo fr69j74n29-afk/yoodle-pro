@@ -67,6 +67,8 @@
   .scrim{position:fixed;inset:0;background:rgba(15,42,61,.45);display:none;align-items:flex-end;justify-content:center;z-index:50}
   .scrim.open{display:flex}
   .sheet{background:var(--surface);width:100%;max-width:560px;border-radius:20px 20px 0 0;padding:22px 16px calc(22px + env(safe-area-inset-bottom))}
+  /* every sheet fits the screen and scrolls inside (31 Oct 2026; ID sheet was cut off on iPhone SE / small Android / sideways) — same idea as yoodle.ca's 90% cap */
+  .sheet{max-height:calc(100vh - 16px);max-height:calc(100dvh - 16px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
   @media(min-width:600px){.scrim{align-items:center}.sheet{border-radius:20px}}
   .sheet h2{margin:0 0 6px;font-size:22px}
   .sheet .sub{color:var(--ink2);margin:0 0 18px;font-size:15px}
